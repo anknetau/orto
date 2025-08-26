@@ -8,8 +8,44 @@ import (
 	"github.com/anknetau/orto/orto"
 )
 
-func TestSpliterino(t *testing.T) {
-	//t.Error(filepath.Clean("/////"))
+func TestCleanFilePath(t *testing.T) {
+	test := func(input string) {
+		result := orto.CleanFilePath(input)
+		expected := filepath.Clean(input)
+		if result != expected {
+			t.Errorf("CleanFilePath(%q): got %q, want %q", input, result, expected)
+		}
+	}
+	test("")
+	test(".")
+	test("/")
+	test("//")
+	test("//a")
+	test("c://a")
+	test(".//a")
+	test("/////a")
+	test("aaaa")
+	test("aaaa//////")
+	test("/////////aaaa//////")
+	test(".///.//.//.//aaaa/.//.//./.")
+	test(".///.//.//.//aaaa/.//.//./.")
+	test("./.")
+	test("././")
+	test("/././")
+	test("a/././")
+	test("a/././a")
+	test("a//a")
+	test("a//a/..")
+	test("../../..")
+	test("../a/../..")
+	test("../a/../")
+	test("./a/../")
+	test("./a/../////")
+	test("../a//a")
+	test("../a//a/..")
+}
+
+func TestSplitFilePath(t *testing.T) {
 	testJoin := func(input string, expected string) string {
 		p := strings.ReplaceAll(input, string(filepath.Separator), "/")
 		result := strings.Join(orto.SplitFilePath(p), ",")

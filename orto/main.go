@@ -112,8 +112,10 @@ func CompareFiles(fsFiles []FSFile, gitFiles []GitFile, fsFileIndex map[string]F
 
 // TODO: symlinks?
 // TODO: empty dirs?
+// TODO: how do we know if a file is the same file?
 // TODO: case change
 // TODO: test in windows
+// TODO: check if the git assumption make sense (eg blob only?)
 
 func ortoShouldIgnore(fsFile *FSFile) bool {
 	if strings.HasPrefix(fsFile.Filepath, ".git"+string(filepath.Separator)) {
@@ -168,6 +170,53 @@ func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[stri
 	} else {
 		return Added{fsFile}
 	}
+}
+
+func CleanFilePath(path string) string {
+	inputParts := SplitFilePath(path)
+	temp := make([]string, 0, len(inputParts))
+	inRange := func(i int) bool {
+		return i < len(inputParts)
+	}
+	separator := func(i int) bool {
+		return inRange(i) && inputParts[i][0] == filepath.Separator
+	}
+	is := func(i int, s string) bool {
+		return inRange(i) && inputParts[i] == s
+	}
+	for i := 0; i < len(inputParts); i++ {
+		s := inputParts[i]
+		if s == "." && separator(i+1) {
+			i++
+			continue
+		}
+		if !separator(i) && !is(i, "..") && separator(i+1) && is(i+2, "..") {
+			if separator(i + 3) {
+				i += 3
+			} else {
+				i += 2
+			}
+			continue
+		}
+		if separator(i) {
+			temp = append(temp, string(filepath.Separator))
+		} else {
+			temp = append(temp, s)
+		}
+	}
+	inputParts = temp
+	if len(inputParts) == 0 {
+		return "."
+	}
+	// Remove / at the end
+	if inputParts[len(inputParts)-1] == "/" && len(inputParts) > 1 {
+		inputParts = inputParts[:len(inputParts)-1]
+	}
+	// Remove /. at the end
+	if inputParts[len(inputParts)-1] == "." && len(inputParts) > 2 && inputParts[len(inputParts)-2] == "/" {
+		inputParts = inputParts[:len(temp)-2]
+	}
+	return strings.Join(inputParts, "")
 }
 
 // Split a dirty file path, preserving it
