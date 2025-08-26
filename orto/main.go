@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -114,14 +115,8 @@ func CompareFiles(fsFiles []FSFile, gitFiles []GitFile, fsFileIndex map[string]F
 // TODO: case change
 // TODO: test in windows
 
-func splitFilePath(cleanFilePath string) []string {
-	separator := filepath.Join("a", "a")[1]
-	return strings.Split(cleanFilePath, string(separator))
-}
-
 func ortoShouldIgnore(fsFile *FSFile) bool {
-	parts := splitFilePath(fsFile.Filepath)
-	if len(parts) > 0 && parts[0] == ".git" {
+	if strings.HasPrefix(fsFile.Filepath, ".git"+string(filepath.Separator)) {
 		return true
 	}
 	//if len(parts) > 0 && parts[0] == ".venv" {
@@ -173,6 +168,66 @@ func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[stri
 	} else {
 		return Added{fsFile}
 	}
+}
+
+// Split an uncleaned file path
+// "" --> []
+// "aa//aaa" --> ["aa", "//", "aaa"]
+// "/aaaa" --> ["/", "aaa"]
+// "/////" --> ["////"]
+func SplitFilePath(path string) []string {
+	sepChar := filepath.Separator
+	lastSeparatorIndex := -1
+	var parts []string
+	for i, c := range path {
+		if c != sepChar {
+			continue
+		}
+		if lastSeparatorIndex == -1 {
+			if i == 0 {
+				// starts with a /
+			} else {
+				if i > 0 {
+					parts = append(parts, path[0:i])
+				}
+			}
+			parts = append(parts, string(sepChar))
+		} else {
+			if i > lastSeparatorIndex+1 {
+				parts = append(parts, path[lastSeparatorIndex+1:i])
+				parts = append(parts, string(sepChar))
+			} else {
+				parts[len(parts)-1] = parts[len(parts)-1] + string(sepChar)
+			}
+		}
+		lastSeparatorIndex = i
+	}
+	if lastSeparatorIndex == -1 {
+		parts = append(parts, path[0:])
+	} else if lastSeparatorIndex == len(path)-1 {
+		// Nothing to do, ends with /
+	} else {
+		parts = append(parts, path[lastSeparatorIndex+1:])
+	}
+	return parts
+}
+
+func ValidFilePath(path string) bool {
+	separator := string(filepath.Separator)
+	sep := "[" + separator + "]"
+	// parts := SplitFilePath(path)
+
+	//    /?a+(/|/a+)
+	//    /?a or /?a/ or /?a/a
+	//    a or /a or a/ or /a/ or a/a or /a/a
+	chars := `[a-zA-Z0-9_\-.]`
+
+	re := regexp.MustCompile(sep + "?" + chars + "+)(" + sep + chars + "+)*/?$")
+	matches := re.FindStringSubmatch(path)
+	if matches == nil {
+		return false
+	}
+	return true
 }
 
 func debug(value any) {

@@ -137,6 +137,9 @@ func GitRunStatus() []StatusLine {
 
 			re := regexp.MustCompile(`^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)$`)
 			matches := re.FindStringSubmatch(leftover)
+			if matches == nil {
+				// TODO: what now?
+			}
 
 			//println("xy", matches[1])
 			//println("sub", matches[2])
