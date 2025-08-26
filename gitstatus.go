@@ -1,4 +1,4 @@
-package main
+package orto
 
 import (
 	"log"
@@ -96,9 +96,9 @@ func gitRunStatus() []StatusLine {
 			//<mW>        The octal file mode in the worktree.
 			//<hH>        The object name in HEAD.
 			//<hI>        The object name in the index.
-			//<X><score>  The rename or copy score (denoting the percentage
+			//<X><score>  The rename or copyFile score (denoting the percentage
 			//	    of similarity between the source and target of the
-			//	    move or copy). For example "R100" or "C75".
+			//	    move or copyFile). For example "R100" or "C75".
 			//<path>      The pathname.  In a renamed/copied entry, this
 			//	    is the target path.
 			//<sep>       When the `-z` option is used, the 2 pathnames are separated

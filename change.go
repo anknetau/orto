@@ -1,4 +1,4 @@
-package main
+package orto
 
 type Change interface {
 	Type() ChangeType

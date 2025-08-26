@@ -1,4 +1,4 @@
-package main
+package orto
 
 import (
 	"crypto/sha1"

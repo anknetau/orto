@@ -1,4 +1,4 @@
-package main
+package orto
 
 import (
 	"encoding/json"
@@ -27,7 +27,7 @@ func checkDestination(path string) {
 	}
 }
 
-func copy(src string, dest string) int64 {
+func copyFile(src string, dest string) int64 {
 	read, err := os.Open(src)
 	if err != nil {
 		log.Fatal(err)
@@ -126,10 +126,10 @@ func main() {
 	for _, c := range allChanges {
 		switch c := c.(type) {
 		case Added:
-			copy(c.fsFile.filepath, destinationAsBaseForCopying+c.fsFile.filepath) // TODO: /
+			copyFile(c.fsFile.filepath, destinationAsBaseForCopying+c.fsFile.filepath) // TODO: /
 			changePrint(c)
 		case Modified:
-			copy(c.fsFile.filepath, destinationAsBaseForCopying+c.fsFile.filepath) // TODO: /
+			copyFile(c.fsFile.filepath, destinationAsBaseForCopying+c.fsFile.filepath) // TODO: /
 			changePrint(c)
 		case Deleted:
 			changePrint(c)
