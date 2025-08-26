@@ -170,35 +170,40 @@ func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[stri
 	}
 }
 
-// Split an uncleaned file path
+// Split a dirty file path, preserving it
 // "" --> []
 // "aa//aaa" --> ["aa", "//", "aaa"]
 // "/aaaa" --> ["/", "aaa"]
 // "/////" --> ["////"]
 func SplitFilePath(path string) []string {
-	separator := string(filepath.Separator)
 	lastSeparatorIndex := -1
-	var parts []string
+	var result []string
 	for i := 0; i < len(path); i++ {
 		if path[i] != filepath.Separator {
 			continue
 		}
+		count := countSeparators(path, i)
 		if lastSeparatorIndex != -1 {
-			parts = append(parts, path[lastSeparatorIndex+1:i])
+			result = append(result, path[lastSeparatorIndex+1:i])
 		} else if i != 0 {
-			parts = append(parts, path[0:i])
+			result = append(result, path[0:i])
 		}
-		count := 1
-		for ; i+count < len(path) && path[i+count] == filepath.Separator; count++ {
-		}
-		parts = append(parts, strings.Repeat(separator, count))
+		result = append(result, strings.Repeat(string(filepath.Separator), count))
 		i += count - 1
 		lastSeparatorIndex = i
 	}
 	if lastSeparatorIndex < len(path)-1 {
-		parts = append(parts, path[lastSeparatorIndex+1:])
+		// This works with lastSeparatorIndex==-1
+		result = append(result, path[lastSeparatorIndex+1:])
 	}
-	return parts
+	return result
+}
+
+func countSeparators(path string, index int) int {
+	count := 1
+	for ; index+count < len(path) && path[index+count] == filepath.Separator; count++ {
+	}
+	return count
 }
 
 func ValidFilePath(path string) bool {
