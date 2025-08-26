@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func index[T any](fsFiles []T, w func(T) string) map[string]T {
+func Index[T any](fsFiles []T, w func(T) string) map[string]T {
 	fsFileIndex := make(map[string]T, len(fsFiles))
 	for _, fsFile := range fsFiles {
 		fsFileIndex[w(fsFile)] = fsFile
@@ -27,7 +27,7 @@ func CheckDestination(path string) {
 	}
 }
 
-func copyFile(src string, dest string) int64 {
+func CopyFile(src string, dest string) int64 {
 	read, err := os.Open(src)
 	if err != nil {
 		log.Fatal(err)
@@ -65,43 +65,43 @@ func copyFile(src string, dest string) int64 {
 	return n
 }
 
-func changePrint(change Change) {
+func ChangePrint(change Change) {
 	switch c := change.(type) {
 	case Added:
-		println("❇️ Added", c.fsFile.filepath)
+		println("❇️ Added", c.FsFile.Filepath)
 	case Deleted:
-		println("❌ Deleted", c.gitFile.filepath)
+		println("❌ Deleted", c.GitFile.Filepath)
 	case Unchanged:
-		println("➖ Unchanged", c.fsFile.filepath)
+		println("➖ Unchanged", c.FsFile.Filepath)
 	case Modified:
-		println("✏️ Modified", c.fsFile.filepath)
+		println("✏️ Modified", c.FsFile.Filepath)
 	case IgnoredByGit:
-		println("⛔︎ GitIgnored", c.fsFile.filepath)
+		println("⛔︎ GitIgnored", c.FsFile.Filepath)
 	case IgnoredByOrto:
-		println("⛔︎ OrtoIgnored", c.fsFile.filepath)
+		println("⛔︎ OrtoIgnored", c.FsFile.Filepath)
 	}
 }
 
 type Both struct {
-	fsFile  FSFile
-	gitFile GitFile
+	FsFile  FSFile
+	GitFile GitFile
 }
 
-func compareFiles(fsFiles []FSFile, gitFiles []GitFile, fsFileIndex map[string]FSFile, gitFileIndex map[string]GitFile) ([]Both, []FSFile, []GitFile) {
+func CompareFiles(fsFiles []FSFile, gitFiles []GitFile, fsFileIndex map[string]FSFile, gitFileIndex map[string]GitFile) ([]Both, []FSFile, []GitFile) {
 	var common []Both
 	var left []FSFile
 	var right []GitFile
 	for _, fsFile := range fsFiles {
-		gitFile, ok := gitFileIndex[fsFile.filepath]
+		gitFile, ok := gitFileIndex[fsFile.Filepath]
 		if ok {
-			common = append(common, Both{fsFile: fsFile, gitFile: gitFile})
+			common = append(common, Both{FsFile: fsFile, GitFile: gitFile})
 		} else {
 			left = append(left, fsFile)
 		}
 	}
 
 	for _, gitFile := range gitFiles {
-		_, ok := fsFileIndex[gitFile.filepath]
+		_, ok := fsFileIndex[gitFile.Filepath]
 		if !ok {
 			right = append(right, gitFile)
 		}
@@ -120,7 +120,7 @@ func splitFilePath(cleanFilePath string) []string {
 }
 
 func ortoShouldIgnore(fsFile *FSFile) bool {
-	parts := splitFilePath(fsFile.filepath)
+	parts := splitFilePath(fsFile.Filepath)
 	if len(parts) > 0 && parts[0] == ".git" {
 		return true
 	}
@@ -139,12 +139,12 @@ func ortoShouldIgnore(fsFile *FSFile) bool {
 	return false
 }
 
-func comparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[string]string) Change {
+func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[string]string) Change {
 	if fsFile != nil {
 		if ortoShouldIgnore(fsFile) {
 			return IgnoredByOrto{fsFile}
 		}
-		if _, ignored := gitIgnoredFilesIndex[fsFile.filepath]; ignored {
+		if _, ignored := gitIgnoredFilesIndex[fsFile.Filepath]; ignored {
 			return IgnoredByGit{fsFile}
 		}
 	}
@@ -152,8 +152,8 @@ func comparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[stri
 		panic("Illegal state")
 	}
 	if gitFile != nil && fsFile != nil {
-		if gitFile.filepath != fsFile.filepath {
-			panic("Illegal state: " + gitFile.filepath + " " + fsFile.filepath)
+		if gitFile.Filepath != fsFile.Filepath {
+			panic("Illegal state: " + gitFile.Filepath + " " + fsFile.Filepath)
 		}
 		stat, err := os.Stat(fsFile.root)
 		if err != nil {

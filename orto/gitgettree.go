@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func gitRunGetTreeForHead() []GitFile {
+func GitRunGetTreeForHead() []GitFile {
 	cmd := exec.Command("git", "ls-tree", "HEAD", "-r", "--format=%(objecttype)|>%(objectname)|>%(path)|>%(objectmode)")
 	out, err := cmd.Output()
 	if err != nil {
@@ -26,7 +26,7 @@ func gitRunGetTreeForHead() []GitFile {
 			log.Fatal("Unsupported object type from git: " + line)
 		}
 		gitFile := GitFile{
-			filepath: filepath.Clean(fields[2]),
+			Filepath: filepath.Clean(fields[2]),
 			path:     fields[2],
 			checksum: fields[1],
 			mode:     fields[3],

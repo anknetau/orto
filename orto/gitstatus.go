@@ -29,7 +29,7 @@ type StatusLine interface {
 }
 
 type IgnoredStatusLine struct {
-	path string
+	Path string
 }
 
 type UntrackedStatusLine struct {
@@ -57,7 +57,7 @@ func (RenamedOrCopiedStatusLine) Type() StatusLineType { return RenamedOrCopiedS
 func (UnmergedStatusLine) Type() StatusLineType        { return UnmergedStatusLineType }
 
 //goland:noinspection GrazieInspection
-func gitRunStatus() []StatusLine {
+func GitRunStatus() []StatusLine {
 	cmd := exec.Command("git", "status", "--porcelain=v2", "--untracked-files=all", "--show-stash", "--branch", "--ignored")
 	out, err := cmd.Output()
 	if err != nil {
@@ -74,7 +74,7 @@ func gitRunStatus() []StatusLine {
 			continue
 		}
 		if path, found := strings.CutPrefix(line, "! "); found {
-			result = append(result, &IgnoredStatusLine{path: path})
+			result = append(result, &IgnoredStatusLine{Path: path})
 		} else if path, found := strings.CutPrefix(line, "? "); found {
 			result = append(result, &UntrackedStatusLine{path: path})
 		} else if leftover, found := strings.CutPrefix(line, "1 "); found {
@@ -96,9 +96,9 @@ func gitRunStatus() []StatusLine {
 			//<mW>        The octal file mode in the worktree.
 			//<hH>        The object name in HEAD.
 			//<hI>        The object name in the index.
-			//<X><score>  The rename or copyFile score (denoting the percentage
+			//<X><score>  The rename or CopyFile score (denoting the percentage
 			//	    of similarity between the source and target of the
-			//	    move or copyFile). For example "R100" or "C75".
+			//	    move or CopyFile). For example "R100" or "C75".
 			//<path>      The pathname.  In a renamed/copied entry, this
 			//	    is the target path.
 			//<sep>       When the `-z` option is used, the 2 pathnames are separated

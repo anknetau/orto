@@ -1,16 +1,17 @@
 package main
 
 import (
-	"github.com/anknetau/orto/orto"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/anknetau/orto/orto"
 )
 
 func main() {
 	destination := "/Users/ank/dev/orto_dest_test"
 	destinationAsBaseForCopying := destination + "/" // TODO
-	CheckDestination(destination)
+	orto.CheckDestination(destination)
 
 	//err := os.Chdir("/Users/ank/dev/accounting/accounting")
 	//err := os.Chdir("/Users/ank/dev/mirrors")
@@ -19,29 +20,29 @@ func main() {
 		log.Fatal(err)
 	}
 	// FS Files
-	fsFiles := fsReadDir("./") // TODO "./"
-	gitFiles := gitRunGetTreeForHead()
-	gitStatus := gitRunStatus()
+	fsFiles := orto.FsReadDir("./") // TODO "./"
+	gitFiles := orto.GitRunGetTreeForHead()
+	gitStatus := orto.GitRunStatus()
 
-	fsFileIndex := index(fsFiles, func(file FSFile) string {
-		return file.filepath
+	fsFileIndex := orto.Index(fsFiles, func(file orto.FSFile) string {
+		return file.Filepath
 	})
-	gitFileIndex := index(gitFiles, func(file GitFile) string {
-		return file.filepath
+	gitFileIndex := orto.Index(gitFiles, func(file orto.GitFile) string {
+		return file.Filepath
 	})
 	var gitIgnoredFiles []string
 	for _, status := range gitStatus {
 		switch v := status.(type) {
-		case *IgnoredStatusLine:
-			gitIgnoredFiles = append(gitIgnoredFiles, v.path)
+		case *orto.IgnoredStatusLine:
+			gitIgnoredFiles = append(gitIgnoredFiles, v.Path)
 		default:
 		}
 	}
-	gitIgnoredFilesIndex := index(gitIgnoredFiles, func(file string) string {
+	gitIgnoredFilesIndex := orto.Index(gitIgnoredFiles, func(file string) string {
 		return file
 	})
 
-	common, left, right := compareFiles(fsFiles, gitFiles, fsFileIndex, gitFileIndex)
+	common, left, right := orto.CompareFiles(fsFiles, gitFiles, fsFileIndex, gitFileIndex)
 
 	// Filter out ignored
 	//var aLeft []FSFile
@@ -51,49 +52,49 @@ func main() {
 	//	}
 	//}
 
-	var allChanges []Change
+	var allChanges []orto.Change
 	for _, f := range left {
-		change := comparePair(nil, &f, gitIgnoredFilesIndex)
+		change := orto.ComparePair(nil, &f, gitIgnoredFilesIndex)
 		allChanges = append(allChanges, change)
 	}
 	for _, f := range right {
-		change := comparePair(&f, nil, gitIgnoredFilesIndex)
+		change := orto.ComparePair(&f, nil, gitIgnoredFilesIndex)
 		allChanges = append(allChanges, change)
 	}
 	for _, c := range common {
-		change := comparePair(&c.gitFile, &c.fsFile, gitIgnoredFilesIndex)
+		change := orto.ComparePair(&c.GitFile, &c.FsFile, gitIgnoredFilesIndex)
 		allChanges = append(allChanges, change)
 	}
 
 	for _, c := range allChanges {
 		switch c := c.(type) {
-		case Added:
-			copyFile(c.fsFile.filepath, destinationAsBaseForCopying+c.fsFile.filepath) // TODO: /
-			changePrint(c)
-		case Modified:
-			copyFile(c.fsFile.filepath, destinationAsBaseForCopying+c.fsFile.filepath) // TODO: /
-			changePrint(c)
-		case Deleted:
-			changePrint(c)
+		case orto.Added:
+			orto.CopyFile(c.FsFile.Filepath, destinationAsBaseForCopying+c.FsFile.Filepath) // TODO: /
+			orto.ChangePrint(c)
+		case orto.Modified:
+			orto.CopyFile(c.FsFile.Filepath, destinationAsBaseForCopying+c.FsFile.Filepath) // TODO: /
+			orto.ChangePrint(c)
+		case orto.Deleted:
+			orto.ChangePrint(c)
 		}
 	}
 	println("----")
 	for _, c := range allChanges {
-		if c.Type() == UnchangedType {
-			changePrint(c)
+		if c.Type() == orto.UnchangedType {
+			orto.ChangePrint(c)
 		}
 	}
 	for _, c := range allChanges {
-		if c.Type() == IgnoredByGitType {
-			changePrint(c)
+		if c.Type() == orto.IgnoredByGitType {
+			orto.ChangePrint(c)
 		}
 	}
 	allDotGitChanges := true
 	for _, c := range allChanges {
 		switch change := c.(type) {
-		case IgnoredByOrto:
+		case orto.IgnoredByOrto:
 			// TODO: fix this:
-			if !strings.HasPrefix(change.fsFile.filepath, ".git/") {
+			if !strings.HasPrefix(change.FsFile.Filepath, ".git/") {
 				allDotGitChanges = false
 				break
 			}
@@ -104,8 +105,8 @@ func main() {
 	} else {
 		for _, c := range allChanges {
 			switch c.(type) {
-			case IgnoredByOrto:
-				changePrint(c)
+			case orto.IgnoredByOrto:
+				orto.ChangePrint(c)
 			}
 		}
 	}

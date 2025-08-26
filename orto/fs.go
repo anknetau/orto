@@ -7,12 +7,12 @@ import (
 )
 
 type FSFile struct {
-	filepath string
+	Filepath string
 	root     string
 	entry    os.DirEntry
 }
 
-func fsReadDir(root string) []FSFile {
+func FsReadDir(root string) []FSFile {
 	var entries []FSFile
 	var err = filepath.WalkDir(root, func(root string, info os.DirEntry, err error) error {
 		if err != nil {
@@ -23,7 +23,7 @@ func fsReadDir(root string) []FSFile {
 		}
 
 		fsFile := FSFile{
-			filepath: filepath.Clean(root),
+			Filepath: filepath.Clean(root),
 			root:     root,
 			entry:    info,
 		}

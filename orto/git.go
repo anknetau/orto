@@ -1,7 +1,7 @@
 package orto
 
 type GitFile struct {
-	filepath string
+	Filepath string
 	path     string
 	checksum string
 	mode     string

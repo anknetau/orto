@@ -23,26 +23,26 @@ func (IgnoredByGit) Type() ChangeType  { return IgnoredByGitType }
 func (IgnoredByOrto) Type() ChangeType { return IgnoredByOrtoType }
 
 type Added struct {
-	fsFile *FSFile
+	FsFile *FSFile
 }
 
 type Deleted struct {
-	gitFile *GitFile
+	GitFile *GitFile
 }
 
 type Unchanged struct {
-	fsFile  *FSFile
-	gitFile *GitFile
+	FsFile  *FSFile
+	GitFile *GitFile
 }
 
 type Modified struct {
-	fsFile  *FSFile
-	gitFile *GitFile
+	FsFile  *FSFile
+	GitFile *GitFile
 }
 type IgnoredByGit struct {
-	fsFile *FSFile
+	FsFile *FSFile
 }
 
 type IgnoredByOrto struct {
-	fsFile *FSFile
+	FsFile *FSFile
 }
