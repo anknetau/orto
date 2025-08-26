@@ -176,37 +176,34 @@ func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[stri
 // "/aaaa" --> ["/", "aaa"]
 // "/////" --> ["////"]
 func SplitFilePath(path string) []string {
-	sepChar := filepath.Separator
+	separator := string(filepath.Separator)
 	lastSeparatorIndex := -1
 	var parts []string
 	for i, c := range path {
-		if c != sepChar {
+		if c != filepath.Separator {
 			continue
 		}
 		if lastSeparatorIndex == -1 {
-			if i == 0 {
-				// starts with a /
-			} else {
-				if i > 0 {
-					parts = append(parts, path[0:i])
-				}
+			if i != 0 {
+				parts = append(parts, path[0:i])
 			}
-			parts = append(parts, string(sepChar))
+			parts = append(parts, separator)
+		} else if i-lastSeparatorIndex > 1 {
+			parts = append(parts, path[lastSeparatorIndex+1:i], separator)
 		} else {
-			if i > lastSeparatorIndex+1 {
-				parts = append(parts, path[lastSeparatorIndex+1:i])
-				parts = append(parts, string(sepChar))
-			} else {
-				parts[len(parts)-1] = parts[len(parts)-1] + string(sepChar)
+			// Safe because at least one separator has been appended at this point
+			extraRepeats := 0
+			for i+extraRepeats+1 < len(parts) && path[i+extraRepeats+1] == filepath.Separator {
+				extraRepeats++
 			}
+			parts[len(parts)-1] += strings.Repeat(separator, extraRepeats+1)
+			i += extraRepeats
 		}
 		lastSeparatorIndex = i
 	}
 	if lastSeparatorIndex == -1 {
 		parts = append(parts, path[0:])
-	} else if lastSeparatorIndex == len(path)-1 {
-		// Nothing to do, ends with /
-	} else {
+	} else if lastSeparatorIndex < len(path)-1 {
 		parts = append(parts, path[lastSeparatorIndex+1:])
 	}
 	return parts
