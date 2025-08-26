@@ -35,11 +35,3 @@ func fsReadDir(root string) []FSFile {
 	}
 	return entries
 }
-
-func fsIndexByName(fsFiles []FSFile) map[string]FSFile {
-	fsFileIndex := make(map[string]FSFile, len(fsFiles))
-	for _, fsFile := range fsFiles {
-		fsFileIndex[fsFile.filepath] = fsFile
-	}
-	return fsFileIndex
-}
