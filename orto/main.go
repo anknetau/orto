@@ -179,31 +179,23 @@ func SplitFilePath(path string) []string {
 	separator := string(filepath.Separator)
 	lastSeparatorIndex := -1
 	var parts []string
-	for i, c := range path {
-		if c != filepath.Separator {
+	for i := 0; i < len(path); i++ {
+		if path[i] != filepath.Separator {
 			continue
 		}
-		if lastSeparatorIndex == -1 {
-			if i != 0 {
-				parts = append(parts, path[0:i])
-			}
-			parts = append(parts, separator)
-		} else if i-lastSeparatorIndex > 1 {
-			parts = append(parts, path[lastSeparatorIndex+1:i], separator)
-		} else {
-			// Safe because at least one separator has been appended at this point
-			extraRepeats := 0
-			for i+extraRepeats+1 < len(parts) && path[i+extraRepeats+1] == filepath.Separator {
-				extraRepeats++
-			}
-			parts[len(parts)-1] += strings.Repeat(separator, extraRepeats+1)
-			i += extraRepeats
+		if lastSeparatorIndex != -1 {
+			parts = append(parts, path[lastSeparatorIndex+1:i])
+		} else if i != 0 {
+			parts = append(parts, path[0:i])
 		}
+		count := 1
+		for ; i+count < len(path) && path[i+count] == filepath.Separator; count++ {
+		}
+		parts = append(parts, strings.Repeat(separator, count))
+		i += count - 1
 		lastSeparatorIndex = i
 	}
-	if lastSeparatorIndex == -1 {
-		parts = append(parts, path[0:])
-	} else if lastSeparatorIndex < len(path)-1 {
+	if lastSeparatorIndex < len(path)-1 {
 		parts = append(parts, path[lastSeparatorIndex+1:])
 	}
 	return parts
