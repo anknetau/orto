@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/anknetau/orto/assert"
 	"github.com/anknetau/orto/orto"
 )
 
@@ -49,9 +50,7 @@ func TestSplitFilePath(t *testing.T) {
 	testJoin := func(input string, expected string) string {
 		p := strings.ReplaceAll(input, string(filepath.Separator), "/")
 		result := strings.Join(orto.SplitFilePath(p), ",")
-		if result != expected {
-			t.Errorf("SplitFilePath(%q): got %q, want %q", p, result, expected)
-		}
+		assert.Equal(t, expected, result)
 		return result
 	}
 	testJoin("", "")
