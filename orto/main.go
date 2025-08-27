@@ -110,12 +110,11 @@ func CompareFiles(fsFiles []FSFile, gitFiles []GitFile, fsFileIndex map[string]F
 	return common, left, right
 }
 
-// TODO: symlinks?
+// TODO: symlinks appear as blobs but with a different mode. also check symlinks on the filesystem.
 // TODO: empty dirs?
-// TODO: how do we know if a file is the same file?
+// TODO: how do we know if a file is the same file? inodes, etc?
 // TODO: case change
-// TODO: test in windows
-// TODO: check if the git assumption make sense (eg blob only?)
+// TODO: test in windows and linux
 
 func ortoShouldIgnore(fsFile *FSFile) bool {
 	if strings.HasPrefix(fsFile.Filepath, ".git"+string(filepath.Separator)) {
