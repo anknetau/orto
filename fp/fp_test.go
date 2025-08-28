@@ -1,16 +1,17 @@
-package orto_test
+package fp_test
 
 import (
 	"path/filepath"
 	"testing"
 
 	"github.com/anknetau/orto/assert"
-	"github.com/anknetau/orto/orto"
+	fp "github.com/anknetau/orto/fp"
 )
 
 func TestCleanFilePath(t *testing.T) {
 	test := func(input string) {
-		assert.Equal(t, filepath.Clean(input), orto.CleanFilePath(input))
+		t.Helper()
+		assert.Equal(t, filepath.Clean(input), fp.CleanFilePath(input))
 	}
 	test("")
 	test(".")
@@ -44,8 +45,7 @@ func TestCleanFilePath(t *testing.T) {
 func TestSplitFilePath(t *testing.T) {
 	testJoin := func(input string, expected []string) {
 		t.Helper()
-		result := orto.SplitFilePath(input)
-		assert.Equal(t, expected, result)
+		assert.Equal(t, expected, fp.SplitFilePath(input))
 	}
 	testJoin("", []string{})
 	testJoin("c:/windows", []string{"c:", "/", "windows"})

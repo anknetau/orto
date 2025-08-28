@@ -23,9 +23,8 @@ func GitRunGetTreeForHead() []GitFile {
 			log.Fatal("Invalid line from git: " + line)
 		}
 		// When `git ls-tree` is passed -r, it will recurse and not show trees, but resolve the blobs within instead.
-		// TODO: Submodules will appear as a `commit`
 		if fields[0] != "blob" {
-			log.Fatal("Unsupported object type from git: " + line)
+			log.Fatal("Submodules are not supported: " + line)
 		}
 		gitFile := GitFile{
 			Filepath: filepath.Clean(fields[2]),
