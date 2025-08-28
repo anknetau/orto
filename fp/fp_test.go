@@ -8,7 +8,12 @@ import (
 	fp "github.com/anknetau/orto/fp"
 )
 
-func TestCleanFilePath2(t *testing.T) {
+func TestJoined(t *testing.T) {
+	assert.Equal(t, "/a/c", filepath.Join("/", "a", "c"))
+	assert.Equal(t, "/a/c", filepath.Join("/a/.", "./c"))
+}
+
+func TestValidFilePathForOrto(t *testing.T) {
 	test := func(input string, valid bool) {
 		t.Helper()
 		assert.Equal(t, valid, fp.ValidFilePathForOrto(input))
