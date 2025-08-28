@@ -2,12 +2,20 @@ package assert
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
 func True(t *testing.T, value bool, message ...interface{}) {
 	t.Helper()
 	if !value {
+		Fail(t, firstAsString(message))
+	}
+}
+
+func False(t *testing.T, value bool, message ...interface{}) {
+	t.Helper()
+	if value {
 		Fail(t, firstAsString(message))
 	}
 }
@@ -20,20 +28,21 @@ func Fail(t *testing.T, message string) {
 	t.Errorf("%s: %s", t.Name(), message)
 }
 
-func Equal(t *testing.T, expected string, actual string, message ...interface{}) {
+func Equal[T any](t *testing.T, expected T, actual T, message ...interface{}) {
 	t.Helper()
-	if expected != actual {
+
+	if !reflect.DeepEqual(expected, actual) {
 		s := ""
 		userMsg := firstAsString(message...)
 		if len(userMsg) > 0 {
 			s = fmt.Sprintf(" (%s)", userMsg)
 		}
-		Fail(t, fmt.Sprintf("Expected: '%s'. Actual: '%s'%s", expected, actual, s))
+		Fail(t, fmt.Sprintf("Expected: '%#v'. Actual: '%#v'%s", expected, actual, s))
 	}
 }
 
 func firstAsString(arg ...interface{}) string {
-	if arg == nil || len(arg) < 1 {
+	if len(arg) == 0 {
 		return ""
 	}
 	if s, ok := arg[0].(string); ok {

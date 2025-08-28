@@ -244,6 +244,9 @@ func SplitFilePath(path string) []string {
 		// This works with lastSeparatorIndex==-1
 		result = append(result, path[lastSeparatorIndex+1:])
 	}
+	if result == nil {
+		return []string{}
+	}
 	return result
 }
 
