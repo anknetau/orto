@@ -8,6 +8,21 @@ import (
 	fp "github.com/anknetau/orto/fp"
 )
 
+func TestCleanFilePath2(t *testing.T) {
+	test := func(input string, valid bool) {
+		t.Helper()
+		assert.Equal(t, valid, fp.ValidFilePathForOrto(input))
+	}
+	test("", false)
+	test(".", true)
+	test("/", true)
+	test("./a", true)
+	test("../a", true)
+	test("../aaaa a", false)
+	test(" ", false)
+	test("./aaaaa/.", true)
+}
+
 func TestCleanFilePath(t *testing.T) {
 	test := func(input string) {
 		t.Helper()

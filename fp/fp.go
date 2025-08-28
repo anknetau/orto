@@ -2,6 +2,7 @@ package fp
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -52,6 +53,7 @@ func CleanFilePath(path string) string {
 	return strings.Join(inputParts, "")
 }
 
+// SplitFilePath
 // Split a dirty file path, preserving it
 // "" --> []
 // "aa//aaa" --> ["aa", "//", "aaa"]
@@ -82,6 +84,23 @@ func SplitFilePath(path string) []string {
 		return []string{}
 	}
 	return result
+}
+
+func ValidFilePathForOrto(path string) bool {
+	if len(path) == 0 {
+		return false
+	}
+	re := regexp.MustCompile(`^[a-zA-Z0-9_.\-~@#$%^&=+{}\[\]:;,<>]+$`)
+	parts := SplitFilePath(filepath.Clean(path))
+	for _, part := range parts {
+		if part[0] != filepath.Separator {
+			matches := re.FindStringSubmatch(part)
+			if matches == nil {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func countSeparators(path string, index int) int {

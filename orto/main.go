@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -169,24 +168,6 @@ func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[stri
 	} else {
 		return Added{fsFile}
 	}
-}
-
-func ValidFilePath(path string) bool {
-	separator := string(filepath.Separator)
-	sep := "[" + separator + "]"
-	// parts := SplitFilePath(path)
-
-	//    /?a+(/|/a+)
-	//    /?a or /?a/ or /?a/a
-	//    a or /a or a/ or /a/ or a/a or /a/a
-	chars := `[a-zA-Z0-9_\-.]`
-
-	re := regexp.MustCompile(sep + "?" + chars + "+)(" + sep + chars + "+)*/?$")
-	matches := re.FindStringSubmatch(path)
-	if matches == nil {
-		return false
-	}
-	return true
 }
 
 func debug(value any) {
