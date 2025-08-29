@@ -248,7 +248,7 @@ func Start(params Parameters) {
 		log.Fatal(err)
 	}
 	// FS Files
-	fsFiles := FsReadDir("./") // TODO "./"
+	fsFiles := FsReadDir(params.Source)
 	gitFiles := GitRunGetTreeForHead()
 	gitStatus := GitRunStatus()
 
@@ -311,17 +311,19 @@ func Start(params Parameters) {
 			PrintChange(c)
 		}
 	}
-	allDotGitChanges := true
+
+	ortoIgnores := 0
+	ortoDotGitIgnores := 0
 	for _, c := range allChanges {
 		if c.Kind == IgnoredByOrtoKind {
+			ortoIgnores++
 			// TODO: fix this:
 			if c.FsFile != nil && !strings.HasPrefix(c.FsFile.CleanPath, ".git/") {
-				allDotGitChanges = false
-				break
+				ortoDotGitIgnores++
 			}
 		}
 	}
-	if allDotGitChanges {
+	if ortoIgnores == ortoDotGitIgnores && ortoIgnores > 0 {
 		println("⛔︎ OrtoIgnored", ".git/**")
 	} else {
 		for _, c := range allChanges {
