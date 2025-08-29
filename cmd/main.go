@@ -12,5 +12,6 @@ func main() {
 		Destination:         "/Users/ank/dev/orto/dest/../dest/.", // TODO: this is within the source!
 		CopyDotGit:          false,
 		CopyGitIgnoredFiles: false,
+		CopyUnchangedFiles:  true,
 	})
 }

@@ -70,7 +70,7 @@ func copyContents(src *os.File, dest *os.File) int64 {
 }
 
 func CopyFile(sourceRelativePath string, destRelativePath string, destAbsoluteDirectory string) int64 {
-	println(sourceRelativePath + " copied to " + destRelativePath + " in " + destAbsoluteDirectory)
+	//println(sourceRelativePath + " copied to " + destRelativePath + " in " + destAbsoluteDirectory)
 	if !filepath.IsAbs(destAbsoluteDirectory) {
 		panic("Not an absolute directory: " + destAbsoluteDirectory)
 	}
@@ -92,10 +92,10 @@ func CopyFile(sourceRelativePath string, destRelativePath string, destAbsoluteDi
 	// TODO: do this properly, eg make sure we are not going up a level
 	// TODO: we are assuming here that this is a file and not a directory.
 	// If that happens, then we are further assuming what's left is a directory.
-	dir, fn := filepath.Split(destRelativePath)
+	dir, _ := filepath.Split(destRelativePath)
 	if len(dir) > 0 {
 		dirToCreate := filepath.Join(destAbsoluteDirectory, dir)
-		println("Creating '" + dir + "' at [" + dirToCreate + "] '" + fn + "' for " + destRelativePath)
+		//println("Creating '" + dir + "' at [" + dirToCreate + "] '" + fn + "' for " + destRelativePath)
 		err = os.MkdirAll(dirToCreate, 0755)
 		if err != nil {
 			log.Fatal(err)
@@ -244,6 +244,7 @@ type Parameters struct {
 	Destination         string
 	CopyDotGit          bool // TODO
 	CopyGitIgnoredFiles bool // TODO
+	CopyUnchangedFiles  bool // TODO
 }
 
 func Start(params Parameters) {
@@ -309,7 +310,6 @@ func Start(params Parameters) {
 			PrintChange(c)
 		}
 	}
-	println("----")
 	for _, c := range allChanges {
 		if c.Kind == UnchangedKind {
 			PrintChange(c)
@@ -348,14 +348,19 @@ func Start(params Parameters) {
 		//fmt.Printf("%#v,%#v\n", c.FsFile, c.GitFile)
 		switch c.Kind {
 		case AddedKind, ModifiedKind:
-			if c.FsFile != nil {
+			if c.FsFile != nil { // TODO: why checking this here?
 				CopyFile(c.FsFile.CleanPath, c.FsFile.CleanPath, params.Destination)
 				PrintCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
 			}
 		case DeletedKind:
-			if c.GitFile != nil {
+			if c.GitFile != nil { // TODO: why checking this here?
 				// TODO: actually do something with deletions
 				PrintDel(c.GitFile.CleanPath)
+			}
+		case UnchangedKind:
+			if params.CopyUnchangedFiles {
+				CopyFile(c.FsFile.CleanPath, c.FsFile.CleanPath, params.Destination)
+				PrintCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
 			}
 		}
 	}
