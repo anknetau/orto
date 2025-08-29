@@ -7,7 +7,6 @@ import (
 )
 
 func GitRunGetTreeForHead() []GitFile {
-	//goland:noinspection SpellCheckingInspection
 	cmd := exec.Command("git", "ls-tree", "HEAD", "-r", "--format=%(objecttype)|>%(objectname)|>%(path)|>%(objectmode)")
 	out, err := cmd.Output()
 	if err != nil {
