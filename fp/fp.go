@@ -126,12 +126,7 @@ func DirFirstEntry(path string) (*string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(f)
+	defer f.Close()
 	entry, err := f.Readdirnames(1)
 	if err == io.EOF {
 		return nil, nil

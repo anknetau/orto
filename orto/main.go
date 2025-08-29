@@ -34,6 +34,9 @@ func CheckSource(path string) {
 	if !dotGitStat.IsDir() {
 		log.Fatalf("Source %s does not contain a .git subdirectory", path)
 	}
+	if !filepath.IsAbs(path) {
+		log.Fatal("Source is not an absolute path: " + path)
+	}
 }
 
 // CheckDestination git status --porcelain=v2 --untracked-files=all --show-stash --branch --ignored
@@ -52,50 +55,51 @@ func CheckDestination(path string) {
 	if !isDirEmpty {
 		log.Fatalf("Destination %s is not empty", path)
 	}
+	if !filepath.IsAbs(path) {
+		log.Fatal("Destination is not an absolute path: " + path)
+	}
 }
 
 // TODO: destination shouldn't be in source etc
 
-func CopyFile(src string, dest string) int64 {
-	// TODO: commented out.
-	println(src + " copied to " + dest)
-	return 0
-	// TODO: this is quick and dirty
-	read, err := os.Open(src)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func(r *os.File) {
-		err := r.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(read)
-	//os.MkdirAll(dest, 0755)
-	// TODO: do this properly, eg make sure we are not going up a level
-	dir, _ := filepath.Split(dest)
-	//println(dir)
-	//println(fileName)
-	//os.Exit(1)
-	err = os.MkdirAll(dir, 0755)
-	if err != nil {
-		log.Fatal(err)
-	}
-	write, err := os.Create(dest)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func(w *os.File) {
-		err := w.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(write)
-	n, err := write.ReadFrom(read)
+func copyContents(src *os.File, dest *os.File) int64 {
+	n, err := dest.ReadFrom(src)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return n
+}
+
+func CopyFile(sourceRelativePath string, destRelativePath string, destAbsoluteDirectory string) int64 {
+	//xx := filepath.Join(destRelativePath, destAbsoluteDirectory)
+	println(sourceRelativePath + " copied to " + destRelativePath + " in " + destAbsoluteDirectory)
+	if !filepath.IsAbs(destAbsoluteDirectory) {
+		panic("Not an absolute directory: " + destAbsoluteDirectory)
+	}
+	// TODO: commented out.
+	return 0
+
+	// TODO: this is quick and dirty
+	read, err := os.Open(sourceRelativePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer read.Close()
+
+	// TODO: do this properly, eg make sure we are not going up a level
+	// TODO: we are assuming here that this is a file and not a directory.
+	// If that happens, then we are further assuming what's left is a directory.
+	dir, _ := filepath.Split(destRelativePath)
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+	write, err := os.Create(destRelativePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer write.Close()
+	return copyContents(read, write)
 }
 
 func PrintCopy(src string, dst string) {
@@ -236,6 +240,8 @@ type Parameters struct {
 func Start(params Parameters) {
 	CheckSource(params.Source)
 	CheckDestination(params.Destination)
+	params.Source = filepath.Clean(params.Source)
+	params.Destination = filepath.Clean(params.Destination)
 
 	err := os.Chdir(params.Source)
 	if err != nil {
@@ -332,7 +338,7 @@ func Start(params Parameters) {
 		switch c.Kind {
 		case AddedKind, ModifiedKind:
 			if c.FsFile != nil {
-				CopyFile(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
+				CopyFile(c.FsFile.CleanPath, c.FsFile.CleanPath, params.Destination)
 				PrintCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
 			}
 		case DeletedKind:

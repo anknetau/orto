@@ -30,12 +30,7 @@ func checksumBlob(path string, algo string) string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer func(fileToRead *os.File) {
-		err := fileToRead.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(fileToRead)
+	defer fileToRead.Close()
 
 	var hashAlgo hash.Hash
 	hashAlgo = checksumGoHash(algo)
