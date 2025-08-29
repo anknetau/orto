@@ -2,9 +2,11 @@ package orto
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/anknetau/orto/fp"
 )
@@ -226,11 +228,118 @@ func debug(value any) {
 	println(string(b))
 }
 
-type OrtoParameters struct {
+type Parameters struct {
 	Source      string
 	Destination string
 }
 
-func Start(params OrtoParameters) {
+func Start(params Parameters) {
+	CheckSource(params.Source)
+	CheckDestination(params.Destination)
 
+	err := os.Chdir(params.Source)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// FS Files
+	fsFiles := FsReadDir("./") // TODO "./"
+	gitFiles := GitRunGetTreeForHead()
+	gitStatus := GitRunStatus()
+
+	fsFileIndex := Index(fsFiles, func(file FSFile) string {
+		return file.CleanPath
+	})
+	gitFileIndex := Index(gitFiles, func(file GitFile) string {
+		return file.CleanPath
+	})
+	var gitIgnoredFiles []string
+	for _, status := range gitStatus {
+		switch v := status.(type) {
+		case *IgnoredStatusLine:
+			gitIgnoredFiles = append(gitIgnoredFiles, v.Path)
+		default:
+		}
+	}
+	gitIgnoredFilesIndex := Index(gitIgnoredFiles, func(file string) string {
+		return file
+	})
+
+	common, left, right := CompareFiles(fsFiles, gitFiles, fsFileIndex, gitFileIndex)
+
+	// Filter out ignored
+	//var aLeft []FSFile
+	//for _, f := range left {
+	//	if _, found := gitIgnoredFilesIndex[f.filepath]; !found {
+	//		aLeft = append(aLeft, f)
+	//	}
+	//}
+
+	var allChanges []Change
+	for _, f := range left {
+		change := ComparePair(nil, &f, gitIgnoredFilesIndex, params.Destination)
+		allChanges = append(allChanges, change)
+	}
+	for _, f := range right {
+		change := ComparePair(&f, nil, gitIgnoredFilesIndex, params.Destination)
+		allChanges = append(allChanges, change)
+	}
+	for _, c := range common {
+		change := ComparePair(&c.GitFile, &c.FsFile, gitIgnoredFilesIndex, params.Destination)
+		allChanges = append(allChanges, change)
+	}
+
+	for _, c := range allChanges {
+		switch c.Kind {
+		case AddedKind, ModifiedKind, DeletedKind:
+			PrintChange(c)
+		}
+	}
+	println("----")
+	for _, c := range allChanges {
+		if c.Kind == UnchangedKind {
+			PrintChange(c)
+		}
+	}
+	for _, c := range allChanges {
+		if c.Kind == IgnoredByGitKind {
+			PrintChange(c)
+		}
+	}
+	allDotGitChanges := true
+	for _, c := range allChanges {
+		if c.Kind == IgnoredByOrtoKind {
+			// TODO: fix this:
+			if c.FsFile != nil && !strings.HasPrefix(c.FsFile.CleanPath, ".git/") {
+				allDotGitChanges = false
+				break
+			}
+		}
+	}
+	if allDotGitChanges {
+		println("⛔︎ OrtoIgnored", ".git/**")
+	} else {
+		for _, c := range allChanges {
+			if c.Kind == IgnoredByOrtoKind {
+				PrintChange(c)
+			}
+		}
+	}
+
+	println("---")
+
+	for _, c := range allChanges {
+		fmt.Printf("%#v,%#v\n", c.FsFile, c.GitFile)
+		switch c.Kind {
+		case AddedKind, ModifiedKind:
+			if c.FsFile != nil {
+				CopyFile(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
+				PrintCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
+			}
+		case DeletedKind:
+			if c.GitFile != nil {
+				// TODO: actually do something with deletions
+				PrintDel(c.GitFile.CleanPath)
+			}
+		}
+	}
 }

@@ -3,13 +3,11 @@ package orto
 import (
 	"log"
 	"os/exec"
-	"path/filepath"
 	"strings"
-
-	"github.com/anknetau/orto/fp"
 )
 
 func GitRunGetTreeForHead() []GitFile {
+	//goland:noinspection SpellCheckingInspection
 	cmd := exec.Command("git", "ls-tree", "HEAD", "-r", "--format=%(objecttype)|>%(objectname)|>%(path)|>%(objectmode)")
 	out, err := cmd.Output()
 	if err != nil {
@@ -20,26 +18,22 @@ func GitRunGetTreeForHead() []GitFile {
 	lines := strings.SplitSeq(strings.TrimSpace(output), "\n")
 
 	for line := range lines {
-		fields := strings.Split(line, "|>")
-		if len(fields) != 4 || len(fields[1]) == 0 || len(fields[2]) == 0 || len(fields[3]) == 0 {
-			log.Fatal("Invalid line from git: " + line)
-		}
-		objectType := fields[0]
-		Filepath := filepath.Clean(fields[2])
-		path := fields[2]
-		checksum := fields[1]
-		mode := fields[3]
-		// When `git ls-tree` is passed -r, it will recurse and not show trees, but resolve the blobs within instead.
-		if objectType != "blob" {
-			log.Fatal("Submodules are not supported: " + line)
-		}
-		fp.ValidFilePathForOrtoOrDie(Filepath)
-		gitFile := GitFile{Filepath, path, checksum, mode}
-		if checksumGetAlgo(gitFile.checksum) == UNKNOWN {
-			log.Fatal("Don't know how this was hashed: " + line)
-		}
+		gitFile := gitFileFromLine(line)
 		result = append(result, gitFile)
 	}
 
 	return result
+}
+
+func gitFileFromLine(line string) GitFile {
+	fields := strings.Split(line, "|>")
+	if len(fields) != 4 || len(fields[1]) == 0 || len(fields[2]) == 0 || len(fields[3]) == 0 {
+		log.Fatal("Invalid line from git: " + line)
+	}
+	objectType := fields[0]
+	path := fields[2]
+	checksum := fields[1]
+	mode := fields[3]
+	return MakeGitFile(objectType, path, checksum, mode)
+
 }

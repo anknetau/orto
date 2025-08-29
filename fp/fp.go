@@ -145,8 +145,8 @@ func DirFirstEntry(path string) (*string, error) {
 	return &entry[0], nil
 }
 
-// IsDirEmpty Efficiently determine if the given directory is empty, by reading a single entry.
-// If passed a non-directory, will return an error.
+// IsDirEmpty Efficiently determine if the given directory is empty by reading a single entry.
+// If passed a non-directory, it will return an error.
 func IsDirEmpty(path string) (bool, error) {
 	filename, err := DirFirstEntry(path)
 	if err != nil {
