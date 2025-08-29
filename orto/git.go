@@ -42,7 +42,7 @@ func NewGitFile(objectType, path, checksum, mode string) GitFile {
 		log.Fatal("Invalid git mode: " + mode)
 	}
 	if !IsSupportedGitMode(mode) {
-		log.Fatal("Unsupported git mode: " + mode)
+		log.Fatal("Unsupported git mode: " + mode + " for " + path)
 	}
 	// When `git ls-tree` is passed -r, it will recurse and not show trees, but resolve the blobs within instead.
 	if objectType != "blob" {

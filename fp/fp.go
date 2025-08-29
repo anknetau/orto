@@ -100,7 +100,7 @@ func ValidFilePathForOrto(path string) bool {
 	if len(path) == 0 {
 		return false
 	}
-	re := regexp.MustCompile(`^[a-zA-Z0-9_.\-~@#$%^&=+{}\[\]:;,<>]+$`)
+	re := regexp.MustCompile(`^[a-zA-Z0-9_.\-~@#$%^&=+{}\[\]:;,<>()]+$`)
 	parts := SplitFilePath(filepath.Clean(path))
 	for _, part := range parts {
 		if part[0] != filepath.Separator {

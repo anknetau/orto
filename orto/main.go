@@ -239,12 +239,17 @@ func debug(value any) {
 	println(string(b))
 }
 
+type Inclusions struct {
+	DotGit          bool // TODO
+	GitIgnoredFiles bool // TODO
+	UnchangedFiles  bool // TODO
+}
+
 type Parameters struct {
-	Source              string
-	Destination         string
-	CopyDotGit          bool // TODO
-	CopyGitIgnoredFiles bool // TODO
-	CopyUnchangedFiles  bool // TODO
+	Source        string
+	Destination   string
+	ChangeSetName string
+	Inclusions    Inclusions
 }
 
 func Start(params Parameters) {
@@ -252,8 +257,18 @@ func Start(params Parameters) {
 	CheckDestination(params.Destination)
 	params.Source = filepath.Clean(params.Source)
 	params.Destination = filepath.Clean(params.Destination)
+	// TODO: check this properly:
+	if len(params.ChangeSetName) == 0 || strings.ContainsAny(params.ChangeSetName, string(filepath.Separator)+" ") {
+		log.Fatalf("Invalid ChangeSetName %s", params.ChangeSetName)
+	}
+	params.Destination = filepath.Join(params.Destination, params.ChangeSetName) // TODO: do this properly
+	// TODO: do this properly:
+	err := os.Mkdir(params.Destination, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	err := os.Chdir(params.Source)
+	err = os.Chdir(params.Source)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -358,7 +373,7 @@ func Start(params Parameters) {
 				PrintDel(c.GitFile.CleanPath)
 			}
 		case UnchangedKind:
-			if params.CopyUnchangedFiles {
+			if params.Inclusions.UnchangedFiles {
 				CopyFile(c.FsFile.CleanPath, c.FsFile.CleanPath, params.Destination)
 				PrintCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
 			}
