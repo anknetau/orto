@@ -2,7 +2,6 @@ package orto
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -81,7 +80,7 @@ func CopyFile(sourceRelativePath string, destRelativePath string, destAbsoluteDi
 	if !filepath.IsLocal(destRelativePath) {
 		panic("Non-local destRelativePath directory " + sourceRelativePath)
 	}
-	destAbsoluteFile := filepath.Join(destRelativePath, destAbsoluteDirectory)
+	destAbsoluteFile := filepath.Join(destAbsoluteDirectory, destRelativePath)
 
 	// TODO: this is quick and dirty
 	read, err := os.Open(sourceRelativePath)
@@ -241,8 +240,10 @@ func debug(value any) {
 }
 
 type Parameters struct {
-	Source      string
-	Destination string
+	Source              string
+	Destination         string
+	CopyDotGit          bool // TODO
+	CopyGitIgnoredFiles bool // TODO
 }
 
 func Start(params Parameters) {
@@ -344,7 +345,7 @@ func Start(params Parameters) {
 	println("---")
 
 	for _, c := range allChanges {
-		fmt.Printf("%#v,%#v\n", c.FsFile, c.GitFile)
+		//fmt.Printf("%#v,%#v\n", c.FsFile, c.GitFile)
 		switch c.Kind {
 		case AddedKind, ModifiedKind:
 			if c.FsFile != nil {
