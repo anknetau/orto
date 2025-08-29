@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/anknetau/orto/fp"
 )
 
 // TODO:
@@ -64,6 +66,7 @@ func GitRunStatus() []StatusLine {
 		log.Fatal(err)
 	}
 
+	// TODO: Paths returned here need to all be checked with fp.ValidFilePathForOrtoOrDie(path)
 	var result []StatusLine
 	output := string(out)
 	lines := strings.SplitSeq(strings.TrimSpace(output), "\n")
@@ -74,8 +77,10 @@ func GitRunStatus() []StatusLine {
 			continue
 		}
 		if path, found := strings.CutPrefix(line, "! "); found {
+			fp.ValidFilePathForOrtoOrDie(path)
 			result = append(result, &IgnoredStatusLine{Path: path})
 		} else if path, found := strings.CutPrefix(line, "? "); found {
+			fp.ValidFilePathForOrtoOrDie(path)
 			result = append(result, &UntrackedStatusLine{path: path})
 		} else if leftover, found := strings.CutPrefix(line, "1 "); found {
 			// 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>
@@ -153,10 +158,12 @@ func GitRunStatus() []StatusLine {
 			result = append(result, &ChangedStatusLine{path: matches[8]})
 			//println(">>>>", line)
 		} else if path, found := strings.CutPrefix(line, "2 "); found {
+			fp.ValidFilePathForOrtoOrDie(path)
 			// 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <X><score> <path><sep><origPath>
 			result = append(result, &RenamedOrCopiedStatusLine{path: path})
 			// u <xy> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>
 		} else if path, found := strings.CutPrefix(line, "u "); found {
+			fp.ValidFilePathForOrtoOrDie(path)
 			result = append(result, &UnmergedStatusLine{path: path})
 		} else {
 			panic("Status line can't be parsed: " + line)

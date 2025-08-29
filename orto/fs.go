@@ -1,9 +1,10 @@
 package orto
 
 import (
-	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/anknetau/orto/fp"
 )
 
 type FSFile struct {
@@ -22,6 +23,8 @@ func FsReadDir(root string) []FSFile {
 			return nil
 		}
 
+		fp.ValidFilePathForOrtoOrDie(root)
+
 		fsFile := FSFile{
 			Filepath: filepath.Clean(root),
 			root:     root,
@@ -31,7 +34,7 @@ func FsReadDir(root string) []FSFile {
 		return nil
 	})
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return entries
 }

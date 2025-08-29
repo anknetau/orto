@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/anknetau/orto/fp"
 )
 
 func GitRunGetTreeForHead() []GitFile {
@@ -26,6 +28,7 @@ func GitRunGetTreeForHead() []GitFile {
 		if fields[0] != "blob" {
 			log.Fatal("Submodules are not supported: " + line)
 		}
+		fp.ValidFilePathForOrtoOrDie(fields[2])
 		gitFile := GitFile{
 			Filepath: filepath.Clean(fields[2]),
 			path:     fields[2],

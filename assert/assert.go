@@ -41,6 +41,19 @@ func Equal[T any](t *testing.T, expected T, actual T, message ...interface{}) {
 	}
 }
 
+func NotEqual[T any](t *testing.T, expected T, actual T, message ...interface{}) {
+	t.Helper()
+
+	if reflect.DeepEqual(expected, actual) {
+		s := ""
+		userMsg := firstAsString(message...)
+		if len(userMsg) > 0 {
+			s = fmt.Sprintf(" (%s)", userMsg)
+		}
+		Fail(t, fmt.Sprintf("Expected To Not Be: '%#v'. Actual: '%#v'%s", expected, actual, s))
+	}
+}
+
 func firstAsString(arg ...interface{}) string {
 	if len(arg) == 0 {
 		return ""

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/anknetau/orto/assert"
-	fp "github.com/anknetau/orto/fp"
+	"github.com/anknetau/orto/fp"
 )
 
 func TestJoined(t *testing.T) {
@@ -80,10 +80,48 @@ func TestSplitFilePath(t *testing.T) {
 	testJoin("a/", []string{"a", "/"})
 	testJoin("/a/", []string{"/", "a", "/"})
 	testJoin("a//a", []string{"a", "//", "a"})
+	testJoin("a//b", []string{"a", "//", "b"})
 	testJoin("aaaaa", []string{"aaaaa"})
 	testJoin("./aaaa/blah", []string{".", "/", "aaaa", "/", "blah"})
 	testJoin("./aaaa/blah/", []string{".", "/", "aaaa", "/", "blah", "/"})
 	testJoin("/////", []string{"/////"})
 	testJoin("a/////a////", []string{"a", "/////", "a", "////"})
 	testJoin("/////a////a", []string{"/////", "a", "////", "a"})
+	testJoin("/////a////a", []string{"/////", "a", "////", "a"})
+}
+
+func TestSplitFilePath_NoEmptyElements(t *testing.T) {
+	cases := []string{
+		"a//b",
+		"///",
+		"/a//b//",
+		"a////",
+		"",
+		"a",
+		"/a/b/c",
+	}
+	for _, s := range cases {
+		parts := fp.SplitFilePath(s)
+		for _, p := range parts {
+			assert.NotEqual(t, "", p)
+		}
+	}
+}
+
+func TestSplitFilePath_ExpectedShapes(t *testing.T) {
+	tests := []struct {
+		in   string
+		want []string
+	}{
+		{"a//b", []string{"a", "//", "b"}},
+		{"///", []string{"///"}},
+		{"/a//b//", []string{"/", "a", "//", "b", "//"}},
+		{"a////", []string{"a", "////"}},
+		{"", []string{}},
+		{"a", []string{"a"}},
+	}
+	for _, tt := range tests {
+		got := fp.SplitFilePath(tt.in)
+		assert.Equal(t, tt.want, got)
+	}
 }

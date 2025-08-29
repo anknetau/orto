@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	destination := "/Users/ank/dev/orto_dest_test"
+	destination := "/Users/ank/dev/orto/dest"        // TODO: this is within the output!
 	destinationAsBaseForCopying := destination + "/" // TODO
 	orto.CheckDestination(destination)
 
@@ -54,15 +54,15 @@ func main() {
 
 	var allChanges []orto.Change
 	for _, f := range left {
-		change := orto.ComparePair(nil, &f, gitIgnoredFilesIndex)
+		change := orto.ComparePair(nil, &f, gitIgnoredFilesIndex, destination)
 		allChanges = append(allChanges, change)
 	}
 	for _, f := range right {
-		change := orto.ComparePair(&f, nil, gitIgnoredFilesIndex)
+		change := orto.ComparePair(&f, nil, gitIgnoredFilesIndex, destination)
 		allChanges = append(allChanges, change)
 	}
 	for _, c := range common {
-		change := orto.ComparePair(&c.GitFile, &c.FsFile, gitIgnoredFilesIndex)
+		change := orto.ComparePair(&c.GitFile, &c.FsFile, gitIgnoredFilesIndex, destination)
 		allChanges = append(allChanges, change)
 	}
 

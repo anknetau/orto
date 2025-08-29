@@ -5,7 +5,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
+
+	"github.com/anknetau/orto/fp"
 )
 
 func Index[T any](fsFiles []T, w func(T) string) map[string]T {
@@ -16,7 +17,7 @@ func Index[T any](fsFiles []T, w func(T) string) map[string]T {
 	return fsFileIndex
 }
 
-// git status --porcelain=v2 --untracked-files=all --show-stash --branch --ignored
+// CheckDestination git status --porcelain=v2 --untracked-files=all --show-stash --branch --ignored
 func CheckDestination(path string) {
 	destinationStat, err := os.Stat(path)
 	if err != nil {
@@ -25,7 +26,16 @@ func CheckDestination(path string) {
 	if !destinationStat.IsDir() {
 		log.Fatalf("Destination %s is not a directory", path)
 	}
+	isDirEmpty, err := fp.IsDirEmpty(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !isDirEmpty {
+		log.Fatalf("Destination %s is not empty", path)
+	}
 }
+
+// TODO: destination shouldn't be in source etc
 
 func CopyFile(src string, dest string) int64 {
 	read, err := os.Open(src)
@@ -115,10 +125,19 @@ func CompareFiles(fsFiles []FSFile, gitFiles []GitFile, fsFileIndex map[string]F
 // TODO: case change
 // TODO: test in windows and linux
 
-func ortoShouldIgnore(fsFile *FSFile) bool {
-	if strings.HasPrefix(fsFile.Filepath, ".git"+string(filepath.Separator)) {
+func isOrtoIgnored(fsFile *FSFile, destination string) bool {
+	splitParts := fp.SplitFilePath(fp.CleanFilePath(fsFile.Filepath))
+	if len(splitParts) > 0 && splitParts[0] == ".git" {
+		log.Fatalf("a! Orto ignored file: " + fsFile.Filepath)
 		return true
 	}
+	// TODO: this is within the output!
+	// TODO: ensure this is the right way of comparing - think absolute vs. rel, etc.
+	if len(splitParts) > 0 && splitParts[0] == "dest" || fp.CleanFilePath(fsFile.Filepath) == destination {
+		log.Fatalf("a! Orto ignored file: " + fsFile.Filepath)
+		return true
+	}
+
 	//if len(parts) > 0 && parts[0] == ".venv" {
 	//	return true
 	//}
@@ -134,9 +153,9 @@ func ortoShouldIgnore(fsFile *FSFile) bool {
 	return false
 }
 
-func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[string]string) Change {
+func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, destination string) Change {
 	if fsFile != nil {
-		if ortoShouldIgnore(fsFile) {
+		if isOrtoIgnored(fsFile, destination) {
 			return IgnoredByOrto{fsFile}
 		}
 		if _, ignored := gitIgnoredFilesIndex[fsFile.Filepath]; ignored {

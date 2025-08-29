@@ -1,6 +1,9 @@
 package fp
 
 import (
+	"io"
+	"log"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -13,7 +16,7 @@ func CleanFilePath(path string) string {
 		return i < len(inputParts)
 	}
 	separator := func(i int) bool {
-		return inRange(i) && inputParts[i][0] == filepath.Separator
+		return inRange(i) && os.IsPathSeparator(inputParts[i][0])
 	}
 	is := func(i int, s string) bool {
 		return inRange(i) && inputParts[i] == s
@@ -43,12 +46,13 @@ func CleanFilePath(path string) string {
 		return "."
 	}
 	// Remove / at the end
-	if inputParts[len(inputParts)-1] == "/" && len(inputParts) > 1 {
+	if len(inputParts) > 1 && os.IsPathSeparator(inputParts[len(inputParts)-1][0]) {
 		inputParts = inputParts[:len(inputParts)-1]
 	}
 	// Remove /. at the end
-	if inputParts[len(inputParts)-1] == "." && len(inputParts) > 2 && inputParts[len(inputParts)-2] == "/" {
-		inputParts = inputParts[:len(temp)-2]
+	//if inputParts[len(inputParts)-1] == "." && len(inputParts) > 2 && inputParts[len(inputParts)-2] == "/" {
+	if inputParts[len(inputParts)-1] == "." && len(inputParts) > 2 && os.IsPathSeparator(inputParts[len(inputParts)-2][0]) {
+		inputParts = inputParts[:len(inputParts)-2]
 	}
 	return strings.Join(inputParts, "")
 }
@@ -58,7 +62,7 @@ func CleanFilePath(path string) string {
 // "" --> []
 // "aa//aaa" --> ["aa", "//", "aaa"]
 // "/aaaa" --> ["/", "aaa"]
-// "/////" --> ["////"]
+// "/////" --> ["/////"]
 func SplitFilePath(path string) []string {
 	lastSeparatorIndex := -1
 	var result []string
@@ -86,6 +90,12 @@ func SplitFilePath(path string) []string {
 	return result
 }
 
+func ValidFilePathForOrtoOrDie(path string) {
+	if !ValidFilePathForOrto(path) {
+		log.Fatal("Cannot handle this path: " + path)
+	}
+}
+
 func ValidFilePathForOrto(path string) bool {
 	if len(path) == 0 {
 		return false
@@ -108,4 +118,43 @@ func countSeparators(path string, index int) int {
 	for ; index+count < len(path) && path[index+count] == filepath.Separator; count++ {
 	}
 	return count
+}
+
+// DirFirstEntry Get just the first file within the given directory path.
+func DirFirstEntry(path string) (*string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(f)
+	entry, err := f.Readdirnames(1)
+	if err == io.EOF {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(entry) == 0 {
+		return nil, nil
+	}
+	return &entry[0], nil
+}
+
+// IsDirEmpty Efficiently determine if the given directory is empty, by reading a single entry.
+// If passed a non-directory, will return an error.
+func IsDirEmpty(path string) (bool, error) {
+	filename, err := DirFirstEntry(path)
+	if err != nil {
+		return false, err
+	}
+	if filename == nil {
+		return true, nil
+	} else {
+		return false, err
+	}
 }
