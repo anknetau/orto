@@ -3,14 +3,14 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/anknetau/orto/orto"
 )
 
 func main() {
-	destination := "/Users/ank/dev/orto/dest"        // TODO: this is within the output!
-	destinationAsBaseForCopying := destination + "/" // TODO
+	destination := "/Users/ank/dev/orto/dest" // TODO: this is within the output!
 	orto.CheckDestination(destination)
 
 	//err := os.Chdir("/Users/ank/dev/accounting/accounting")
@@ -68,25 +68,19 @@ func main() {
 
 	for _, c := range allChanges {
 		switch c := c.(type) {
-		case orto.Added:
-			orto.CopyFile(c.FsFile.Filepath, destinationAsBaseForCopying+c.FsFile.Filepath) // TODO: /
-			orto.ChangePrint(c)
-		case orto.Modified:
-			orto.CopyFile(c.FsFile.Filepath, destinationAsBaseForCopying+c.FsFile.Filepath) // TODO: /
-			orto.ChangePrint(c)
-		case orto.Deleted:
-			orto.ChangePrint(c)
+		case orto.Added, orto.Modified, orto.Deleted:
+			orto.PrintChange(c)
 		}
 	}
 	println("----")
 	for _, c := range allChanges {
 		if c.Type() == orto.UnchangedType {
-			orto.ChangePrint(c)
+			orto.PrintChange(c)
 		}
 	}
 	for _, c := range allChanges {
 		if c.Type() == orto.IgnoredByGitType {
-			orto.ChangePrint(c)
+			orto.PrintChange(c)
 		}
 	}
 	allDotGitChanges := true
@@ -106,12 +100,27 @@ func main() {
 		for _, c := range allChanges {
 			switch c.(type) {
 			case orto.IgnoredByOrto:
-				orto.ChangePrint(c)
+				orto.PrintChange(c)
 			}
 		}
 	}
 
-	//println("---")
+	println("---")
+
+	for _, c := range allChanges {
+		switch c := c.(type) {
+		case orto.Added:
+			orto.CopyFile(c.FsFile.Filepath, filepath.Join(destination, c.FsFile.Filepath))
+			orto.PrintCopy(c.FsFile.Filepath, filepath.Join(destination, c.FsFile.Filepath))
+		case orto.Modified:
+			orto.CopyFile(c.FsFile.Filepath, filepath.Join(destination, c.FsFile.Filepath))
+			orto.PrintCopy(c.FsFile.Filepath, filepath.Join(destination, c.FsFile.Filepath))
+		case orto.Deleted:
+			// TODO: actualy do something with deletions
+			orto.PrintDel(c.GitFile.Filepath)
+		}
+	}
+
 	//for _, fsFile := range fsFiles {
 	//	gitFile, ok := gitFileIndex[fsFile.filepath]
 	//	pGitFile := &gitFile

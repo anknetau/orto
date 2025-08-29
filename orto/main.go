@@ -38,6 +38,7 @@ func CheckDestination(path string) {
 // TODO: destination shouldn't be in source etc
 
 func CopyFile(src string, dest string) int64 {
+	// TODO: this is quick and dirty
 	read, err := os.Open(src)
 	if err != nil {
 		log.Fatal(err)
@@ -75,7 +76,15 @@ func CopyFile(src string, dest string) int64 {
 	return n
 }
 
-func ChangePrint(change Change) {
+func PrintCopy(src string, dst string) {
+	println(src + " → " + dst)
+}
+
+func PrintDel(src string) {
+	println(src + " ❌ ")
+}
+
+func PrintChange(change Change) {
 	switch c := change.(type) {
 	case Added:
 		println("❇️ Added", c.FsFile.Filepath)
@@ -128,7 +137,6 @@ func CompareFiles(fsFiles []FSFile, gitFiles []GitFile, fsFileIndex map[string]F
 func isOrtoIgnored(fsFile *FSFile, destination string) bool {
 	splitParts := fp.SplitFilePath(fp.CleanFilePath(fsFile.Filepath))
 	if len(splitParts) > 0 && splitParts[0] == ".git" {
-		log.Fatalf("a! Orto ignored file: " + fsFile.Filepath)
 		return true
 	}
 	// TODO: this is within the output!
