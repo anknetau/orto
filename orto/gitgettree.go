@@ -33,6 +33,6 @@ func gitFileFromLine(line string) GitFile {
 	path := fields[2]
 	checksum := fields[1]
 	mode := fields[3]
-	return MakeGitFile(objectType, path, checksum, mode)
+	return NewGitFile(objectType, path, checksum, mode)
 
 }

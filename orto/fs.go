@@ -14,9 +14,18 @@ type FSFile struct {
 	dirEntry  os.DirEntry
 }
 
+func NewFSFile(path string, dirEntry os.DirEntry) FSFile {
+	cleanPath := filepath.Clean(path)
+	fp.ValidFilePathForOrtoOrDie(cleanPath)
+	return FSFile{cleanPath, path, dirEntry}
+}
+
 func FsReadDir(root string) []FSFile {
 	var entries []FSFile
 	var err = filepath.WalkDir(root, func(path string, dirEntry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 		relPath, err := filepath.Rel(root, path)
 		if err != nil {
 			return err
@@ -31,14 +40,8 @@ func FsReadDir(root string) []FSFile {
 			}
 			return nil
 		}
-		println(relPath)
-		// TODO: filepath.IsLocal() where needed
-		if err != nil {
-			return err
-		}
-		fp.ValidFilePathForOrtoOrDie(relPath)
-		Filepath := filepath.Clean(relPath)
-		fsFile := FSFile{Filepath, relPath, dirEntry}
+		// TODO: add filepath.IsLocal() where needed, for security
+		fsFile := NewFSFile(relPath, dirEntry)
 		entries = append(entries, fsFile)
 		return nil
 	})

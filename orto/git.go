@@ -36,7 +36,7 @@ func IsSupportedGitMode(mode string) bool {
 	return IsValidGitMode(mode) && m != Symlink && m != Submodule && m != Directory
 }
 
-func MakeGitFile(objectType string, path string, checksum string, mode string) GitFile {
+func NewGitFile(objectType, path, checksum, mode string) GitFile {
 	Filepath := filepath.Clean(path)
 	if !IsValidGitMode(mode) {
 		log.Fatal("Invalid git mode: " + mode)
