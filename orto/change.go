@@ -1,50 +1,50 @@
 package orto
 
 type Change interface {
-	Type() ChangeType
+	Kind() ChangeKind
 }
 
-type ChangeType int
+type ChangeKind int
 
 const (
-	AddedType ChangeType = iota
-	DeletedType
-	UnchangedType
-	ModifiedType
-	IgnoredByGitType
-	IgnoredByOrtoType
+	AddedKind ChangeKind = iota
+	DeletedKind
+	UnchangedKind
+	ModifiedKind
+	IgnoredByGitKind
+	IgnoredByOrtoKind
 )
 
-//go:generate stringer -type=ChangeType
+//go:generate go run golang.org/x/tools/cmd/stringer@latest -type=ChangeKind
 
-func (Added) Type() ChangeType         { return AddedType }
-func (Deleted) Type() ChangeType       { return DeletedType }
-func (Unchanged) Type() ChangeType     { return UnchangedType }
-func (Modified) Type() ChangeType      { return ModifiedType }
-func (IgnoredByGit) Type() ChangeType  { return IgnoredByGitType }
-func (IgnoredByOrto) Type() ChangeType { return IgnoredByOrtoType }
+func (Added) Kind() ChangeKind         { return AddedKind }
+func (Deleted) Kind() ChangeKind       { return DeletedKind }
+func (Unchanged) Kind() ChangeKind     { return UnchangedKind }
+func (Modified) Kind() ChangeKind      { return ModifiedKind }
+func (IgnoredByGit) Kind() ChangeKind  { return IgnoredByGitKind }
+func (IgnoredByOrto) Kind() ChangeKind { return IgnoredByOrtoKind }
 
 type Added struct {
-	FsFile *FSFile
+	FsFile FSFile
 }
 
 type Deleted struct {
-	GitFile *GitFile
+	GitFile GitFile
 }
 
 type Unchanged struct {
-	FsFile  *FSFile
-	GitFile *GitFile
+	FsFile  FSFile
+	GitFile GitFile
 }
 
 type Modified struct {
-	FsFile  *FSFile
-	GitFile *GitFile
+	FsFile  FSFile
+	GitFile GitFile
 }
 type IgnoredByGit struct {
-	FsFile *FSFile
+	FsFile FSFile
 }
 
 type IgnoredByOrto struct {
-	FsFile *FSFile
+	FsFile FSFile
 }

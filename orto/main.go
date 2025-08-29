@@ -164,10 +164,10 @@ func isOrtoIgnored(fsFile *FSFile, destination string) bool {
 func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, destination string) Change {
 	if fsFile != nil {
 		if isOrtoIgnored(fsFile, destination) {
-			return IgnoredByOrto{fsFile}
+			return IgnoredByOrto{*fsFile}
 		}
 		if _, ignored := gitIgnoredFilesIndex[fsFile.Filepath]; ignored {
-			return IgnoredByGit{fsFile}
+			return IgnoredByGit{*fsFile}
 		}
 	}
 	if gitFile == nil && fsFile == nil {
@@ -186,14 +186,14 @@ func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[stri
 		}
 		calculatedChecksum := checksumBlob(gitFile.path, checksumGetAlgo(gitFile.checksum))
 		if calculatedChecksum == gitFile.checksum {
-			return Unchanged{fsFile, gitFile}
+			return Unchanged{*fsFile, *gitFile}
 		} else {
-			return Modified{fsFile, gitFile}
+			return Modified{*fsFile, *gitFile}
 		}
 	} else if gitFile != nil {
-		return Deleted{gitFile}
+		return Deleted{*gitFile}
 	} else {
-		return Added{fsFile}
+		return Added{*fsFile}
 	}
 }
 

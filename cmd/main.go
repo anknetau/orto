@@ -74,12 +74,12 @@ func main() {
 	}
 	println("----")
 	for _, c := range allChanges {
-		if c.Type() == orto.UnchangedType {
+		if c.Kind() == orto.UnchangedKind {
 			orto.PrintChange(c)
 		}
 	}
 	for _, c := range allChanges {
-		if c.Type() == orto.IgnoredByGitType {
+		if c.Kind() == orto.IgnoredByGitKind {
 			orto.PrintChange(c)
 		}
 	}
