@@ -15,6 +15,8 @@ const (
 	IgnoredByOrtoType
 )
 
+//go:generate stringer -type=ChangeType
+
 func (Added) Type() ChangeType         { return AddedType }
 func (Deleted) Type() ChangeType       { return DeletedType }
 func (Unchanged) Type() ChangeType     { return UnchangedType }
