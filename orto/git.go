@@ -1,8 +1,9 @@
 package orto
 
+// GitFile is a file reference in the git world.
 type GitFile struct {
-	Filepath string
-	path     string
-	checksum string
-	mode     string
+	CleanPath string
+	path      string
+	checksum  string
+	mode      string
 }

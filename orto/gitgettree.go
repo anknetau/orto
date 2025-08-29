@@ -24,17 +24,17 @@ func GitRunGetTreeForHead() []GitFile {
 		if len(fields) != 4 || len(fields[1]) == 0 || len(fields[2]) == 0 || len(fields[3]) == 0 {
 			log.Fatal("Invalid line from git: " + line)
 		}
+		objectType := fields[0]
+		Filepath := filepath.Clean(fields[2])
+		path := fields[2]
+		checksum := fields[1]
+		mode := fields[3]
 		// When `git ls-tree` is passed -r, it will recurse and not show trees, but resolve the blobs within instead.
-		if fields[0] != "blob" {
+		if objectType != "blob" {
 			log.Fatal("Submodules are not supported: " + line)
 		}
-		fp.ValidFilePathForOrtoOrDie(fields[2])
-		gitFile := GitFile{
-			Filepath: filepath.Clean(fields[2]),
-			path:     fields[2],
-			checksum: fields[1],
-			mode:     fields[3],
-		}
+		fp.ValidFilePathForOrtoOrDie(Filepath)
+		gitFile := GitFile{Filepath, path, checksum, mode}
 		if checksumGetAlgo(gitFile.checksum) == UNKNOWN {
 			log.Fatal("Don't know how this was hashed: " + line)
 		}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,12 +11,17 @@ import (
 )
 
 func main() {
-	destination := "/Users/ank/dev/orto/dest" // TODO: this is within the output!
-	orto.CheckDestination(destination)
+	params := orto.OrtoParameters{
+		//err := os.Chdir("/Users/ank/dev/accounting/accounting")
+		//err := os.Chdir("/Users/ank/dev/mirrors")
+		Source:      "/Users/ank/dev/orto",
+		Destination: "/Users/ank/dev/orto/dest", // TODO: this is within the source!
+	}
+	orto.Start(params)
+	orto.CheckSource(params.Source)
+	orto.CheckDestination(params.Destination)
 
-	//err := os.Chdir("/Users/ank/dev/accounting/accounting")
-	//err := os.Chdir("/Users/ank/dev/mirrors")
-	err := os.Chdir("/Users/ank/dev/orto")
+	err := os.Chdir(params.Source)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,10 +31,10 @@ func main() {
 	gitStatus := orto.GitRunStatus()
 
 	fsFileIndex := orto.Index(fsFiles, func(file orto.FSFile) string {
-		return file.Filepath
+		return file.CleanPath
 	})
 	gitFileIndex := orto.Index(gitFiles, func(file orto.GitFile) string {
-		return file.Filepath
+		return file.CleanPath
 	})
 	var gitIgnoredFiles []string
 	for _, status := range gitStatus {
@@ -54,41 +60,40 @@ func main() {
 
 	var allChanges []orto.Change
 	for _, f := range left {
-		change := orto.ComparePair(nil, &f, gitIgnoredFilesIndex, destination)
+		change := orto.ComparePair(nil, &f, gitIgnoredFilesIndex, params.Destination)
 		allChanges = append(allChanges, change)
 	}
 	for _, f := range right {
-		change := orto.ComparePair(&f, nil, gitIgnoredFilesIndex, destination)
+		change := orto.ComparePair(&f, nil, gitIgnoredFilesIndex, params.Destination)
 		allChanges = append(allChanges, change)
 	}
 	for _, c := range common {
-		change := orto.ComparePair(&c.GitFile, &c.FsFile, gitIgnoredFilesIndex, destination)
+		change := orto.ComparePair(&c.GitFile, &c.FsFile, gitIgnoredFilesIndex, params.Destination)
 		allChanges = append(allChanges, change)
 	}
 
 	for _, c := range allChanges {
-		switch c := c.(type) {
-		case orto.Added, orto.Modified, orto.Deleted:
+		switch c.Kind {
+		case orto.AddedKind, orto.ModifiedKind, orto.DeletedKind:
 			orto.PrintChange(c)
 		}
 	}
 	println("----")
 	for _, c := range allChanges {
-		if c.Kind() == orto.UnchangedKind {
+		if c.Kind == orto.UnchangedKind {
 			orto.PrintChange(c)
 		}
 	}
 	for _, c := range allChanges {
-		if c.Kind() == orto.IgnoredByGitKind {
+		if c.Kind == orto.IgnoredByGitKind {
 			orto.PrintChange(c)
 		}
 	}
 	allDotGitChanges := true
 	for _, c := range allChanges {
-		switch change := c.(type) {
-		case orto.IgnoredByOrto:
+		if c.Kind == orto.IgnoredByOrtoKind {
 			// TODO: fix this:
-			if !strings.HasPrefix(change.FsFile.Filepath, ".git/") {
+			if c.FsFile != nil && !strings.HasPrefix(c.FsFile.CleanPath, ".git/") {
 				allDotGitChanges = false
 				break
 			}
@@ -98,8 +103,7 @@ func main() {
 		println("⛔︎ OrtoIgnored", ".git/**")
 	} else {
 		for _, c := range allChanges {
-			switch c.(type) {
-			case orto.IgnoredByOrto:
+			if c.Kind == orto.IgnoredByOrtoKind {
 				orto.PrintChange(c)
 			}
 		}
@@ -108,16 +112,18 @@ func main() {
 	println("---")
 
 	for _, c := range allChanges {
-		switch c := c.(type) {
-		case orto.Added:
-			orto.CopyFile(c.FsFile.Filepath, filepath.Join(destination, c.FsFile.Filepath))
-			orto.PrintCopy(c.FsFile.Filepath, filepath.Join(destination, c.FsFile.Filepath))
-		case orto.Modified:
-			orto.CopyFile(c.FsFile.Filepath, filepath.Join(destination, c.FsFile.Filepath))
-			orto.PrintCopy(c.FsFile.Filepath, filepath.Join(destination, c.FsFile.Filepath))
-		case orto.Deleted:
-			// TODO: actualy do something with deletions
-			orto.PrintDel(c.GitFile.Filepath)
+		fmt.Printf("%#v,%#v\n", c.FsFile, c.GitFile)
+		switch c.Kind {
+		case orto.AddedKind, orto.ModifiedKind:
+			if c.FsFile != nil {
+				orto.CopyFile(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
+				orto.PrintCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
+			}
+		case orto.DeletedKind:
+			if c.GitFile != nil {
+				// TODO: actually do something with deletions
+				orto.PrintDel(c.GitFile.CleanPath)
+			}
 		}
 	}
 

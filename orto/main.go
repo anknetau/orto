@@ -17,6 +17,23 @@ func Index[T any](fsFiles []T, w func(T) string) map[string]T {
 	return fsFileIndex
 }
 
+func CheckSource(path string) {
+	sourceStat, err := os.Stat(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !sourceStat.IsDir() {
+		log.Fatalf("Source %s is not a directory", path)
+	}
+	dotGitStat, err := os.Stat(filepath.Join(path, ".git"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !dotGitStat.IsDir() {
+		log.Fatalf("Source %s does not contain a .git subdirectory", path)
+	}
+}
+
 // CheckDestination git status --porcelain=v2 --untracked-files=all --show-stash --branch --ignored
 func CheckDestination(path string) {
 	destinationStat, err := os.Stat(path)
@@ -38,6 +55,9 @@ func CheckDestination(path string) {
 // TODO: destination shouldn't be in source etc
 
 func CopyFile(src string, dest string) int64 {
+	// TODO: commented out.
+	println(src + " copied to " + dest)
+	return 0
 	// TODO: this is quick and dirty
 	read, err := os.Open(src)
 	if err != nil {
@@ -85,19 +105,19 @@ func PrintDel(src string) {
 }
 
 func PrintChange(change Change) {
-	switch c := change.(type) {
-	case Added:
-		println("❇️ Added", c.FsFile.Filepath)
-	case Deleted:
-		println("❌ Deleted", c.GitFile.Filepath)
-	case Unchanged:
-		println("➖ Unchanged", c.FsFile.Filepath)
-	case Modified:
-		println("✏️ Modified", c.FsFile.Filepath)
-	case IgnoredByGit:
-		println("⛔︎ GitIgnored", c.FsFile.Filepath)
-	case IgnoredByOrto:
-		println("⛔︎ OrtoIgnored", c.FsFile.Filepath)
+	switch change.Kind {
+	case AddedKind:
+		println("❇️ Added", change.FsFile.CleanPath)
+	case DeletedKind:
+		println("❌ Deleted", change.GitFile.CleanPath)
+	case UnchangedKind:
+		println("➖ Unchanged", change.FsFile.CleanPath)
+	case ModifiedKind:
+		println("✏️ Modified", change.FsFile.CleanPath)
+	case IgnoredByGitKind:
+		println("⛔︎ GitIgnored", change.FsFile.CleanPath)
+	case IgnoredByOrtoKind:
+		println("⛔︎ OrtoIgnored", change.FsFile.CleanPath)
 	}
 }
 
@@ -111,7 +131,7 @@ func CompareFiles(fsFiles []FSFile, gitFiles []GitFile, fsFileIndex map[string]F
 	var left []FSFile
 	var right []GitFile
 	for _, fsFile := range fsFiles {
-		gitFile, ok := gitFileIndex[fsFile.Filepath]
+		gitFile, ok := gitFileIndex[fsFile.CleanPath]
 		if ok {
 			common = append(common, Both{FsFile: fsFile, GitFile: gitFile})
 		} else {
@@ -120,7 +140,7 @@ func CompareFiles(fsFiles []FSFile, gitFiles []GitFile, fsFileIndex map[string]F
 	}
 
 	for _, gitFile := range gitFiles {
-		_, ok := fsFileIndex[gitFile.Filepath]
+		_, ok := fsFileIndex[gitFile.CleanPath]
 		if !ok {
 			right = append(right, gitFile)
 		}
@@ -135,14 +155,14 @@ func CompareFiles(fsFiles []FSFile, gitFiles []GitFile, fsFileIndex map[string]F
 // TODO: test in windows and linux
 
 func isOrtoIgnored(fsFile *FSFile, destination string) bool {
-	splitParts := fp.SplitFilePath(fp.CleanFilePath(fsFile.Filepath))
+	splitParts := fp.SplitFilePath(fp.CleanFilePath(fsFile.CleanPath))
 	if len(splitParts) > 0 && splitParts[0] == ".git" {
 		return true
 	}
 	// TODO: this is within the output!
 	// TODO: ensure this is the right way of comparing - think absolute vs. rel, etc.
-	if len(splitParts) > 0 && splitParts[0] == "dest" || fp.CleanFilePath(fsFile.Filepath) == destination {
-		log.Fatalf("a! Orto ignored file: " + fsFile.Filepath)
+	if len(splitParts) > 0 && splitParts[0] == "dest" || fp.CleanFilePath(fsFile.CleanPath) == destination {
+		log.Fatalf("a! Orto ignored file: " + fsFile.CleanPath)
 		return true
 	}
 
@@ -164,36 +184,36 @@ func isOrtoIgnored(fsFile *FSFile, destination string) bool {
 func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, destination string) Change {
 	if fsFile != nil {
 		if isOrtoIgnored(fsFile, destination) {
-			return IgnoredByOrto{*fsFile}
+			return Change{Kind: IgnoredByOrtoKind, FsFile: fsFile}
 		}
-		if _, ignored := gitIgnoredFilesIndex[fsFile.Filepath]; ignored {
-			return IgnoredByGit{*fsFile}
+		if _, ignored := gitIgnoredFilesIndex[fsFile.CleanPath]; ignored {
+			return Change{Kind: IgnoredByGitKind, FsFile: fsFile}
 		}
 	}
 	if gitFile == nil && fsFile == nil {
 		panic("Illegal state")
 	}
 	if gitFile != nil && fsFile != nil {
-		if gitFile.Filepath != fsFile.Filepath {
-			panic("Illegal state: " + gitFile.Filepath + " " + fsFile.Filepath)
+		if gitFile.CleanPath != fsFile.CleanPath {
+			panic("Illegal state: " + gitFile.CleanPath + " " + fsFile.CleanPath)
 		}
-		stat, err := os.Stat(fsFile.root)
+		stat, err := os.Stat(fsFile.path)
 		if err != nil {
 			log.Fatal(err)
 		}
 		if stat.IsDir() {
-			panic("was dir: " + fsFile.root)
+			panic("was dir: " + fsFile.path)
 		}
 		calculatedChecksum := checksumBlob(gitFile.path, checksumGetAlgo(gitFile.checksum))
 		if calculatedChecksum == gitFile.checksum {
-			return Unchanged{*fsFile, *gitFile}
+			return Change{Kind: UnchangedKind, FsFile: fsFile, GitFile: gitFile}
 		} else {
-			return Modified{*fsFile, *gitFile}
+			return Change{Kind: ModifiedKind, FsFile: fsFile, GitFile: gitFile}
 		}
 	} else if gitFile != nil {
-		return Deleted{*gitFile}
+		return Change{Kind: DeletedKind, GitFile: gitFile}
 	} else {
-		return Added{*fsFile}
+		return Change{Kind: AddedKind, FsFile: fsFile}
 	}
 }
 
@@ -204,4 +224,13 @@ func debug(value any) {
 		log.Fatal(err)
 	}
 	println(string(b))
+}
+
+type OrtoParameters struct {
+	Source      string
+	Destination string
+}
+
+func Start(params OrtoParameters) {
+
 }

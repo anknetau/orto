@@ -7,29 +7,25 @@ import (
 	"github.com/anknetau/orto/fp"
 )
 
+// FSFile is an actual file system file.
 type FSFile struct {
-	Filepath string
-	root     string
-	entry    os.DirEntry
+	CleanPath string
+	path      string
+	dirEntry  os.DirEntry
 }
 
 func FsReadDir(root string) []FSFile {
 	var entries []FSFile
-	var err = filepath.WalkDir(root, func(root string, info os.DirEntry, err error) error {
+	var err = filepath.WalkDir(root, func(path string, dirEntry os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() {
+		if dirEntry.IsDir() {
 			return nil
 		}
-
-		fp.ValidFilePathForOrtoOrDie(root)
-
-		fsFile := FSFile{
-			Filepath: filepath.Clean(root),
-			root:     root,
-			entry:    info,
-		}
+		fp.ValidFilePathForOrtoOrDie(path)
+		Filepath := filepath.Clean(path)
+		fsFile := FSFile{Filepath, path, dirEntry}
 		entries = append(entries, fsFile)
 		return nil
 	})
