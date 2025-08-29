@@ -81,7 +81,7 @@ func SplitFilePath(path string) []string {
 		lastSeparatorIndex = i
 	}
 	if lastSeparatorIndex < len(path)-1 {
-		// This works with lastSeparatorIndex==-1
+		// This works when lastSeparatorIndex is -1
 		result = append(result, path[lastSeparatorIndex+1:])
 	}
 	if result == nil {

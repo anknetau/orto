@@ -71,13 +71,17 @@ func copyContents(src *os.File, dest *os.File) int64 {
 }
 
 func CopyFile(sourceRelativePath string, destRelativePath string, destAbsoluteDirectory string) int64 {
-	//xx := filepath.Join(destRelativePath, destAbsoluteDirectory)
 	println(sourceRelativePath + " copied to " + destRelativePath + " in " + destAbsoluteDirectory)
 	if !filepath.IsAbs(destAbsoluteDirectory) {
 		panic("Not an absolute directory: " + destAbsoluteDirectory)
 	}
-	// TODO: commented out.
-	return 0
+	if !filepath.IsLocal(sourceRelativePath) {
+		panic("Non-local source directory " + sourceRelativePath)
+	}
+	if !filepath.IsLocal(destRelativePath) {
+		panic("Non-local destRelativePath directory " + sourceRelativePath)
+	}
+	destAbsoluteFile := filepath.Join(destRelativePath, destAbsoluteDirectory)
 
 	// TODO: this is quick and dirty
 	read, err := os.Open(sourceRelativePath)
@@ -89,12 +93,16 @@ func CopyFile(sourceRelativePath string, destRelativePath string, destAbsoluteDi
 	// TODO: do this properly, eg make sure we are not going up a level
 	// TODO: we are assuming here that this is a file and not a directory.
 	// If that happens, then we are further assuming what's left is a directory.
-	dir, _ := filepath.Split(destRelativePath)
-	err = os.MkdirAll(dir, 0755)
-	if err != nil {
-		log.Fatal(err)
+	dir, fn := filepath.Split(destRelativePath)
+	if len(dir) > 0 {
+		dirToCreate := filepath.Join(destAbsoluteDirectory, dir)
+		println("Creating '" + dir + "' at [" + dirToCreate + "] '" + fn + "' for " + destRelativePath)
+		err = os.MkdirAll(dirToCreate, 0755)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	write, err := os.Create(destRelativePath)
+	write, err := os.Create(destAbsoluteFile)
 	if err != nil {
 		log.Fatal(err)
 	}
