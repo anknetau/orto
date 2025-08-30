@@ -21,6 +21,7 @@ const (
 )
 
 func checksumBlob(path string, algo string) string {
+	// TODO: os.Stat follows symlinks apparently
 	s, err := os.Stat(path)
 	if err != nil {
 		log.Fatal(err)

@@ -19,6 +19,7 @@ func Index[T any](fsFiles []T, w func(T) string) map[string]T {
 }
 
 func CheckSource(path string) {
+	// TODO: os.Stat follows symlinks apparently
 	sourceStat, err := os.Stat(path)
 	if err != nil {
 		log.Fatal(err)
@@ -26,6 +27,7 @@ func CheckSource(path string) {
 	if !sourceStat.IsDir() {
 		log.Fatalf("Source %s is not a directory", path)
 	}
+	// TODO: os.Stat follows symlinks apparently
 	dotGitStat, err := os.Stat(filepath.Join(path, ".git"))
 	if err != nil {
 		log.Fatal(err)
@@ -40,6 +42,7 @@ func CheckSource(path string) {
 
 // CheckDestination git status --porcelain=v2 --untracked-files=all --show-stash --branch --ignored
 func CheckDestination(path string) {
+	// TODO: os.Stat follows symlinks apparently
 	destinationStat, err := os.Stat(path)
 	if err != nil {
 		log.Fatal(err)
@@ -210,6 +213,7 @@ func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[stri
 		if gitFile.CleanPath != fsFile.CleanPath {
 			panic("Illegal state: " + gitFile.CleanPath + " " + fsFile.CleanPath)
 		}
+		// TODO: os.Stat follows symlinks apparently
 		stat, err := os.Stat(fsFile.path)
 		if err != nil {
 			log.Fatal(err)
