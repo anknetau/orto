@@ -1,6 +1,6 @@
 # Orto
 
-<img src="assets/orto-git.png" alt="Orto logo" width="512" height="100"/>
+<img src="assets/orto-git.png" alt="Orto logo"/>
 
 **Orto** is an orthogonal data manager for Git.  
 
@@ -15,7 +15,7 @@ Unlike `git stash`, which keeps temporary changes inside the .git internals, Ort
 - Written in go for speed
 - Orthogonal design: manage data without polluting your Git history  
 - Lightweight integration with existing Git workflows  
-- Several output options (zip, tar.bz2, raw directories, patch, etc.)
+- Several output options (zip, tar.bz2, raw directories, patch, separate git repo, etc.)
 - Include files that git ignores
 - Encryption to safely store untracked files with credentials
 - Simple setup and usage  
