@@ -141,10 +141,9 @@ func RunStatus() []StatusLine {
 			// !           !    ignored
 			// -------------------------------------------------
 
-			re := regexp.MustCompile(`^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)$`)
+			re := regexp.MustCompile(`^\s*(\S{2})\s+(\S{4})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)$`)
 			matches := re.FindStringSubmatch(leftover)
 			if matches == nil {
-				// TODO: what now?
 				log.Fatal("Error parsing " + line)
 			}
 
@@ -162,7 +161,7 @@ func RunStatus() []StatusLine {
 		} else if leftover, found := strings.CutPrefix(line, "2 "); found {
 			// 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <X><score> <path><sep><origPath>
 			// 2 R. N... 100644 100644 100644 37ee65c344d8ab16aebbed88699b77f3a0f2ee7f 37ee65c344d8ab16aebbed88699b77f3a0f2ee7f R100 git/blob.go   git/gitfile.go
-			re := regexp.MustCompile(`^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$`)
+			re := regexp.MustCompile(`^\s*(\S{2})\s+(\S{4})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$`)
 			matches := re.FindStringSubmatch(leftover)
 			path := matches[9]
 			origPath := matches[10]
