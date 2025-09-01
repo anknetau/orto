@@ -45,7 +45,8 @@ type ChangedStatusLine struct {
 	path string
 }
 type RenamedOrCopiedStatusLine struct {
-	path string
+	from string
+	to   string
 }
 type UnmergedStatusLine struct {
 	path string
@@ -59,7 +60,7 @@ func (RenamedOrCopiedStatusLine) Type() StatusLineType { return RenamedOrCopiedS
 func (UnmergedStatusLine) Type() StatusLineType        { return UnmergedStatusLineType }
 
 //goland:noinspection GrazieInspection
-func GitRunStatus() []StatusLine {
+func RunStatus() []StatusLine {
 	cmd := exec.Command("git", "status", "--porcelain=v2", "--untracked-files=all", "--show-stash", "--branch", "--ignored")
 	out, err := cmd.Output()
 	if err != nil {
@@ -144,6 +145,7 @@ func GitRunStatus() []StatusLine {
 			matches := re.FindStringSubmatch(leftover)
 			if matches == nil {
 				// TODO: what now?
+				log.Fatal("Error parsing " + line)
 			}
 
 			//println("xy", matches[1])
@@ -157,10 +159,19 @@ func GitRunStatus() []StatusLine {
 			// TODO
 			result = append(result, &ChangedStatusLine{path: matches[8]})
 			//println(">>>>", line)
-		} else if path, found := strings.CutPrefix(line, "2 "); found {
-			fp.ValidFilePathForOrtoOrDie(path)
+		} else if leftover, found := strings.CutPrefix(line, "2 "); found {
 			// 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <X><score> <path><sep><origPath>
-			result = append(result, &RenamedOrCopiedStatusLine{path: path})
+			// 2 R. N... 100644 100644 100644 37ee65c344d8ab16aebbed88699b77f3a0f2ee7f 37ee65c344d8ab16aebbed88699b77f3a0f2ee7f R100 git/blob.go   git/gitfile.go
+			re := regexp.MustCompile(`^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$`)
+			matches := re.FindStringSubmatch(leftover)
+			path := matches[9]
+			origPath := matches[10]
+			if matches == nil {
+				log.Fatal("Error parsing " + line)
+			}
+			fp.ValidFilePathForOrtoOrDie(path)
+			fp.ValidFilePathForOrtoOrDie(origPath)
+			result = append(result, &RenamedOrCopiedStatusLine{from: path, to: origPath})
 			// u <xy> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>
 		} else if path, found := strings.CutPrefix(line, "u "); found {
 			fp.ValidFilePathForOrtoOrDie(path)

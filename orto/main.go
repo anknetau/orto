@@ -293,7 +293,7 @@ func Start(params Parameters) {
 
 	status.fsFiles = FsReadDir(params.Source)
 	status.gitBlobs = git.RunGetTreeForHead()
-	status.gitStatus = git.GitRunStatus()
+	status.gitStatus = git.RunStatus()
 
 	status.fsFileIndex = Index(status.fsFiles, func(file FSFile) string {
 		return file.CleanPath
