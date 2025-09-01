@@ -4,17 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"os"
 	"time"
 
-	"github.com/anknetau/orto/git"
 	"github.com/anknetau/orto/orto"
 )
 
-func t() {
-	//contentFromGit("orto/main.go")
-	git.GetRawContent("d46e1c1774be2a4bbad9ae7845a954ae8628018a")
-	return
+func jsonOutputTest() {
 	type Change struct {
 		Path        string
 		Size        int64
@@ -55,8 +50,6 @@ func t() {
 }
 
 func main() {
-	t()
-	os.Exit(0)
 	orto.Start(orto.Parameters{
 		// "/Users/ank/dev/accounting/accounting"
 		// "/Users/ank/dev/mirrors"

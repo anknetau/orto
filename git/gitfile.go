@@ -7,8 +7,8 @@ import (
 	"github.com/anknetau/orto/fp"
 )
 
-// GitFile is a file reference in the git world.
-type GitFile struct {
+// Blob is a file reference in the git world.
+type Blob struct {
 	CleanPath string
 	Path      string
 	Checksum  string
@@ -36,7 +36,7 @@ func IsSupportedGitMode(mode string) bool {
 	return IsValidGitMode(mode) && m != Symlink && m != Submodule && m != Directory
 }
 
-func NewGitFile(objectType, path, checksum, mode string) GitFile {
+func NewGitFile(objectType, path, checksum, mode string) Blob {
 	Filepath := filepath.Clean(path)
 	if !IsValidGitMode(mode) {
 		log.Fatal("Invalid git mode: " + mode)
@@ -49,7 +49,7 @@ func NewGitFile(objectType, path, checksum, mode string) GitFile {
 		log.Fatal("Submodules are not supported: " + objectType)
 	}
 	fp.ValidFilePathForOrtoOrDie(Filepath)
-	gitFile := GitFile{Filepath, path, checksum, Mode(mode)}
+	gitFile := Blob{Filepath, path, checksum, Mode(mode)}
 	if fp.ChecksumGetAlgo(gitFile.Checksum) == fp.UNKNOWN {
 		log.Fatal("Don't know how this was hashed: " + checksum)
 	}

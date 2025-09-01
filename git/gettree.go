@@ -6,13 +6,13 @@ import (
 	"strings"
 )
 
-func RunGetTreeForHead() []GitFile {
+func RunGetTreeForHead() []Blob {
 	cmd := exec.Command("git", "ls-tree", "HEAD", "-r", "--format=%(objecttype)|>%(objectname)|>%(path)|>%(objectmode)")
 	out, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)
 	}
-	var result []GitFile
+	var result []Blob
 	output := string(out)
 	lines := strings.SplitSeq(strings.TrimSpace(output), "\n")
 
@@ -24,7 +24,7 @@ func RunGetTreeForHead() []GitFile {
 	return result
 }
 
-func gitFileFromLine(line string) GitFile {
+func gitFileFromLine(line string) Blob {
 	fields := strings.Split(line, "|>")
 	if len(fields) != 4 || len(fields[1]) == 0 || len(fields[2]) == 0 || len(fields[3]) == 0 {
 		log.Fatal("Invalid line from git: " + line)

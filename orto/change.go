@@ -16,7 +16,7 @@ const (
 //go:generate stringer -type=ChangeKind
 
 type Change struct {
-	Kind    ChangeKind
-	FsFile  *FSFile
-	GitFile *git.GitFile
+	Kind   ChangeKind
+	FsFile *FSFile
+	Blob   *git.Blob
 }

@@ -11,10 +11,10 @@ import (
 	"github.com/anknetau/orto/git"
 )
 
-func Index[T any](fsFiles []T, w func(T) string) map[string]T {
-	fsFileIndex := make(map[string]T, len(fsFiles))
-	for _, fsFile := range fsFiles {
-		fsFileIndex[w(fsFile)] = fsFile
+func Index[T any](items []T, callback func(T) string) map[string]T {
+	fsFileIndex := make(map[string]T, len(items))
+	for _, fsFile := range items {
+		fsFileIndex[callback(fsFile)] = fsFile
 	}
 	return fsFileIndex
 }
@@ -126,7 +126,7 @@ func PrintChange(change Change) {
 	case AddedKind:
 		println("❇️ Added", change.FsFile.CleanPath)
 	case DeletedKind:
-		println("❌ Deleted", change.GitFile.CleanPath)
+		println("❌ Deleted", change.Blob.CleanPath)
 	case UnchangedKind:
 		println("➖ Unchanged", change.FsFile.CleanPath)
 	case ModifiedKind:
@@ -140,13 +140,13 @@ func PrintChange(change Change) {
 
 type Both struct {
 	FsFile  FSFile
-	GitFile git.GitFile
+	GitFile git.Blob
 }
 
-func CompareFiles(fsFiles []FSFile, gitFiles []git.GitFile, fsFileIndex map[string]FSFile, gitFileIndex map[string]git.GitFile) ([]Both, []FSFile, []git.GitFile) {
+func CompareFiles(fsFiles []FSFile, gitBlobs []git.Blob, fsFileIndex map[string]FSFile, gitFileIndex map[string]git.Blob) ([]Both, []FSFile, []git.Blob) {
 	var common []Both
 	var left []FSFile
-	var right []git.GitFile
+	var right []git.Blob
 	for _, fsFile := range fsFiles {
 		gitFile, ok := gitFileIndex[fsFile.CleanPath]
 		if ok {
@@ -156,7 +156,7 @@ func CompareFiles(fsFiles []FSFile, gitFiles []git.GitFile, fsFileIndex map[stri
 		}
 	}
 
-	for _, gitFile := range gitFiles {
+	for _, gitFile := range gitBlobs {
 		_, ok := fsFileIndex[gitFile.CleanPath]
 		if !ok {
 			right = append(right, gitFile)
@@ -198,7 +198,7 @@ func isOrtoIgnored(fsFile *FSFile, destination string) bool {
 	return false
 }
 
-func ComparePair(gitFile *git.GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, destination string) Change {
+func ComparePair(gitFile *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, destination string) Change {
 	if fsFile != nil {
 		if isOrtoIgnored(fsFile, destination) {
 			return Change{Kind: IgnoredByOrtoKind, FsFile: fsFile}
@@ -224,12 +224,12 @@ func ComparePair(gitFile *git.GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[
 		}
 		calculatedChecksum := fp.ChecksumBlob(gitFile.Path, fp.ChecksumGetAlgo(gitFile.Checksum))
 		if calculatedChecksum == gitFile.Checksum {
-			return Change{Kind: UnchangedKind, FsFile: fsFile, GitFile: gitFile}
+			return Change{Kind: UnchangedKind, FsFile: fsFile, Blob: gitFile}
 		} else {
-			return Change{Kind: ModifiedKind, FsFile: fsFile, GitFile: gitFile}
+			return Change{Kind: ModifiedKind, FsFile: fsFile, Blob: gitFile}
 		}
 	} else if gitFile != nil {
-		return Change{Kind: DeletedKind, GitFile: gitFile}
+		return Change{Kind: DeletedKind, Blob: gitFile}
 	} else {
 		return Change{Kind: AddedKind, FsFile: fsFile}
 	}
@@ -257,11 +257,24 @@ type Parameters struct {
 	Inclusions    Inclusions
 }
 
+type Status struct {
+	params       Parameters
+	fsFiles      []FSFile
+	gitBlobs     []git.Blob
+	fsFileIndex  map[string]FSFile
+	gitFileIndex map[string]git.Blob
+	gitStatus    []git.StatusLine
+}
+
 func Start(params Parameters) {
 	CheckSource(params.Source)
 	CheckDestination(params.Destination)
 	params.Source = filepath.Clean(params.Source)
 	params.Destination = filepath.Clean(params.Destination)
+	status := Status{
+		params: params,
+	}
+
 	// TODO: check this properly:
 	if len(params.ChangeSetName) == 0 || strings.ContainsAny(params.ChangeSetName, string(filepath.Separator)+" ") {
 		log.Fatalf("Invalid ChangeSetName %s", params.ChangeSetName)
@@ -277,19 +290,19 @@ func Start(params Parameters) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// FS Files
-	fsFiles := FsReadDir(params.Source)
-	gitFiles := git.RunGetTreeForHead()
-	gitStatus := git.GitRunStatus()
 
-	fsFileIndex := Index(fsFiles, func(file FSFile) string {
+	status.fsFiles = FsReadDir(params.Source)
+	status.gitBlobs = git.RunGetTreeForHead()
+	status.gitStatus = git.GitRunStatus()
+
+	status.fsFileIndex = Index(status.fsFiles, func(file FSFile) string {
 		return file.CleanPath
 	})
-	gitFileIndex := Index(gitFiles, func(file git.GitFile) string {
+	status.gitFileIndex = Index(status.gitBlobs, func(file git.Blob) string {
 		return file.CleanPath
 	})
 	var gitIgnoredFiles []string
-	for _, status := range gitStatus {
+	for _, status := range status.gitStatus {
 		switch v := status.(type) {
 		case *git.IgnoredStatusLine:
 			gitIgnoredFiles = append(gitIgnoredFiles, v.Path)
@@ -300,7 +313,7 @@ func Start(params Parameters) {
 		return file
 	})
 
-	common, left, right := CompareFiles(fsFiles, gitFiles, fsFileIndex, gitFileIndex)
+	common, left, right := CompareFiles(status.fsFiles, status.gitBlobs, status.fsFileIndex, status.gitFileIndex)
 
 	// Filter out ignored
 	//var aLeft []FSFile
@@ -365,7 +378,7 @@ func Start(params Parameters) {
 	println("---")
 
 	for _, c := range allChanges {
-		//fmt.Printf("%#v,%#v\n", c.FsFile, c.GitFile)
+		//fmt.Printf("%#v,%#v\n", c.FsFile, c.Blob)
 		switch c.Kind {
 		case AddedKind, ModifiedKind:
 			if c.FsFile != nil { // TODO: why checking this here?
@@ -373,9 +386,9 @@ func Start(params Parameters) {
 				PrintCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
 			}
 		case DeletedKind:
-			if c.GitFile != nil { // TODO: why checking this here?
+			if c.Blob != nil { // TODO: why checking this here?
 				// TODO: actually do something with deletions
-				PrintDel(c.GitFile.CleanPath)
+				PrintDel(c.Blob.CleanPath)
 			}
 		case UnchangedKind:
 			if params.Inclusions.UnchangedFiles {
