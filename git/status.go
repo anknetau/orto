@@ -179,6 +179,48 @@ func validateChangedStatusLine(changedStatusLine ChangedStatusLine, line string)
 //           When the -z option is given, pathnames are printed as is and without any quoting and lines are terminated with a NUL (ASCII 0x00) byte.
 //           Without the -z option, pathnames with "unusual" characters are quoted as explained for the configuration variable core.quotePath (see git-config(1)).
 
+// TODO: use yield:
+func (xxx *XXX) CheckForEmptyLine(line string) bool {
+	xxx.lastLineIndex++
+	if line != "" {
+		return true
+	}
+	if xxx.emptyLineIndex != 0 {
+		log.Fatal("More than one empty line in git output")
+	}
+	xxx.emptyLineIndex = xxx.lastLineIndex
+	return false
+}
+
+func (xxx *XXX) CheckForEmptyLineEnd() {
+	if xxx.emptyLineIndex != 0 && xxx.emptyLineIndex != xxx.lastLineIndex {
+		log.Fatal("Empty line not at the end in git output")
+	}
+}
+
+func JoinInputWhenNeeded(line *string, prevLine *string) bool {
+	if strings.HasPrefix(*line, "2 ") {
+		*prevLine = *line
+		return false
+	}
+	if *prevLine != "" {
+		*line = *prevLine + "\x00" + *line
+		*prevLine = ""
+	}
+	return true
+}
+
+func JoinInputWhenNeededEnd(prevLine *string) {
+	if *prevLine != "" {
+		log.Fatal("Incomplete line in git output")
+	}
+}
+
+type XXX struct {
+	emptyLineIndex int
+	lastLineIndex  int
+}
+
 func RunStatus() []StatusLine {
 	cmd := exec.Command("git", "status", "--porcelain=v2", "--untracked-files=all", "--show-stash", "--branch", "--ignored", "-z")
 	out, err := cmd.Output()
@@ -190,31 +232,15 @@ func RunStatus() []StatusLine {
 	output := string(out)
 	lines := strings.SplitSeq(output, "\x00")
 	var prevLine string
-	var emptyLineIndex = -1
-	var lastLineIndex = -1
+	var xxx XXX
 	for line := range lines {
-		lastLineIndex++
-		if line == "" {
-			if emptyLineIndex != -1 {
-				log.Fatal("More than one empty line")
-			}
-			emptyLineIndex = lastLineIndex
-			continue
+		if xxx.CheckForEmptyLine(line) && JoinInputWhenNeeded(&line, &prevLine) {
+			result = append(result, parseLine(line))
+			println(line)
 		}
-		if strings.HasPrefix(line, "2 ") {
-			prevLine = line
-			continue
-		}
-		if prevLine != "" {
-			line = prevLine + "\x00" + line
-			prevLine = ""
-		}
-		println(line)
-		result = append(result, parseLine(line))
 	}
-	if emptyLineIndex != -1 && emptyLineIndex != lastLineIndex {
-		log.Fatal("Empty line not at the end")
-	}
+	xxx.CheckForEmptyLineEnd()
+	JoinInputWhenNeededEnd(&prevLine)
 	log.Printf("%#v\n", result)
 	return result
 }
