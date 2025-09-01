@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/anknetau/orto/fp"
+	"github.com/anknetau/orto/git"
 )
 
 func Index[T any](fsFiles []T, w func(T) string) map[string]T {
@@ -139,13 +140,13 @@ func PrintChange(change Change) {
 
 type Both struct {
 	FsFile  FSFile
-	GitFile GitFile
+	GitFile git.GitFile
 }
 
-func CompareFiles(fsFiles []FSFile, gitFiles []GitFile, fsFileIndex map[string]FSFile, gitFileIndex map[string]GitFile) ([]Both, []FSFile, []GitFile) {
+func CompareFiles(fsFiles []FSFile, gitFiles []git.GitFile, fsFileIndex map[string]FSFile, gitFileIndex map[string]git.GitFile) ([]Both, []FSFile, []git.GitFile) {
 	var common []Both
 	var left []FSFile
-	var right []GitFile
+	var right []git.GitFile
 	for _, fsFile := range fsFiles {
 		gitFile, ok := gitFileIndex[fsFile.CleanPath]
 		if ok {
@@ -197,7 +198,7 @@ func isOrtoIgnored(fsFile *FSFile, destination string) bool {
 	return false
 }
 
-func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, destination string) Change {
+func ComparePair(gitFile *git.GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, destination string) Change {
 	if fsFile != nil {
 		if isOrtoIgnored(fsFile, destination) {
 			return Change{Kind: IgnoredByOrtoKind, FsFile: fsFile}
@@ -214,15 +215,15 @@ func ComparePair(gitFile *GitFile, fsFile *FSFile, gitIgnoredFilesIndex map[stri
 			panic("Illegal state: " + gitFile.CleanPath + " " + fsFile.CleanPath)
 		}
 		// TODO: os.Stat follows symlinks apparently
-		stat, err := os.Stat(fsFile.path)
+		stat, err := os.Stat(fsFile.Path)
 		if err != nil {
 			log.Fatal(err)
 		}
 		if stat.IsDir() {
-			panic("was dir: " + fsFile.path)
+			panic("was dir: " + fsFile.Path)
 		}
-		calculatedChecksum := checksumBlob(gitFile.path, checksumGetAlgo(gitFile.checksum))
-		if calculatedChecksum == gitFile.checksum {
+		calculatedChecksum := fp.ChecksumBlob(gitFile.Path, fp.ChecksumGetAlgo(gitFile.Checksum))
+		if calculatedChecksum == gitFile.Checksum {
 			return Change{Kind: UnchangedKind, FsFile: fsFile, GitFile: gitFile}
 		} else {
 			return Change{Kind: ModifiedKind, FsFile: fsFile, GitFile: gitFile}
@@ -278,19 +279,19 @@ func Start(params Parameters) {
 	}
 	// FS Files
 	fsFiles := FsReadDir(params.Source)
-	gitFiles := GitRunGetTreeForHead()
-	gitStatus := GitRunStatus()
+	gitFiles := git.RunGetTreeForHead()
+	gitStatus := git.GitRunStatus()
 
 	fsFileIndex := Index(fsFiles, func(file FSFile) string {
 		return file.CleanPath
 	})
-	gitFileIndex := Index(gitFiles, func(file GitFile) string {
+	gitFileIndex := Index(gitFiles, func(file git.GitFile) string {
 		return file.CleanPath
 	})
 	var gitIgnoredFiles []string
 	for _, status := range gitStatus {
 		switch v := status.(type) {
-		case *IgnoredStatusLine:
+		case *git.IgnoredStatusLine:
 			gitIgnoredFiles = append(gitIgnoredFiles, v.Path)
 		default:
 		}

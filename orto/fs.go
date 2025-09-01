@@ -10,8 +10,8 @@ import (
 // FSFile is an actual file system file.
 type FSFile struct {
 	CleanPath string
-	path      string
-	dirEntry  os.DirEntry
+	Path      string
+	DirEntry  os.DirEntry
 }
 
 func NewFSFile(path string, dirEntry os.DirEntry) FSFile {

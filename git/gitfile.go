@@ -1,4 +1,4 @@
-package orto
+package git
 
 import (
 	"log"
@@ -10,28 +10,28 @@ import (
 // GitFile is a file reference in the git world.
 type GitFile struct {
 	CleanPath string
-	path      string
-	checksum  string
-	mode      GitMode
+	Path      string
+	Checksum  string
+	Mode      Mode
 }
 
-type GitMode string
+type Mode string
 
 const (
-	Directory  GitMode = "40000"
-	File       GitMode = "100644"
-	Executable GitMode = "100755"
-	Symlink    GitMode = "120000"
-	Submodule  GitMode = "160000"
+	Directory  Mode = "40000"
+	File       Mode = "100644"
+	Executable Mode = "100755"
+	Symlink    Mode = "120000"
+	Submodule  Mode = "160000"
 )
 
 func IsValidGitMode(mode string) bool {
-	m := GitMode(mode)
+	m := Mode(mode)
 	return m == Directory || m == File || m == Executable || m == Symlink || m == Submodule
 }
 
 func IsSupportedGitMode(mode string) bool {
-	m := GitMode(mode)
+	m := Mode(mode)
 	// TODO: will we ever need Directory? Probably not because we are looking just for files.
 	return IsValidGitMode(mode) && m != Symlink && m != Submodule && m != Directory
 }
@@ -49,8 +49,8 @@ func NewGitFile(objectType, path, checksum, mode string) GitFile {
 		log.Fatal("Submodules are not supported: " + objectType)
 	}
 	fp.ValidFilePathForOrtoOrDie(Filepath)
-	gitFile := GitFile{Filepath, path, checksum, GitMode(mode)}
-	if checksumGetAlgo(gitFile.checksum) == UNKNOWN {
+	gitFile := GitFile{Filepath, path, checksum, Mode(mode)}
+	if fp.ChecksumGetAlgo(gitFile.Checksum) == fp.UNKNOWN {
 		log.Fatal("Don't know how this was hashed: " + checksum)
 	}
 	return gitFile

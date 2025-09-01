@@ -1,5 +1,7 @@
 package orto
 
+import "github.com/anknetau/orto/git"
+
 type ChangeKind int
 
 const (
@@ -16,5 +18,5 @@ const (
 type Change struct {
 	Kind    ChangeKind
 	FsFile  *FSFile
-	GitFile *GitFile
+	GitFile *git.GitFile
 }

@@ -1,4 +1,4 @@
-package orto
+package git
 
 import (
 	"log"

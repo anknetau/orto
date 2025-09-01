@@ -1,4 +1,4 @@
-package orto
+package fp
 
 import (
 	"crypto/sha1"
@@ -20,7 +20,7 @@ const (
 	UNKNOWN = ""
 )
 
-func checksumBlob(path string, algo string) string {
+func ChecksumBlob(path string, algo string) string {
 	// TODO: os.Stat follows symlinks apparently
 	s, err := os.Stat(path)
 	if err != nil {
@@ -53,7 +53,7 @@ func checksumGoHash(algo string) hash.Hash {
 	panic("tried to use algorithm " + algo)
 }
 
-func checksumGetAlgo(checksum string) string {
+func ChecksumGetAlgo(checksum string) string {
 	if len(checksum) == SHA1LEN {
 		return SHA1
 	} else if len(checksum) == SHA256LEN {

@@ -1,4 +1,4 @@
-package orto
+package git
 
 import (
 	"log"
@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func GitRunGetTreeForHead() []GitFile {
+func RunGetTreeForHead() []GitFile {
 	cmd := exec.Command("git", "ls-tree", "HEAD", "-r", "--format=%(objecttype)|>%(objectname)|>%(path)|>%(objectmode)")
 	out, err := cmd.Output()
 	if err != nil {
@@ -34,5 +34,4 @@ func gitFileFromLine(line string) GitFile {
 	checksum := fields[1]
 	mode := fields[3]
 	return NewGitFile(objectType, path, checksum, mode)
-
 }
