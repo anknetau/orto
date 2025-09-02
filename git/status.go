@@ -1,6 +1,7 @@
 package git
 
 import (
+	"iter"
 	"log"
 	"os/exec"
 	"regexp"
@@ -35,29 +36,38 @@ type IgnoredStatusLine struct {
 }
 
 type UntrackedStatusLine struct {
-	path string
+	Path string
 }
 
 type CommentStatusLine struct {
 	comment string
 }
 type ChangedStatusLine struct {
-	xy   string
-	sub  string
-	path string
-	mH   string
-	mI   string
-	mW   string
-	hH   string
-	hI   string
+	Xy   string
+	Sub  string
+	Path string
+	MH   string
+	MI   string
+	MW   string
+	HH   string
+	HI   string
 }
 type RenamedOrCopiedStatusLine struct {
-	change   ChangedStatusLine
-	origPath string
-	score    string
+	Change   ChangedStatusLine
+	OrigPath string
+	Score    string
 }
 type UnmergedStatusLine struct {
-	path string
+	Xy   string
+	Sub  string
+	M1   string
+	M2   string
+	M3   string
+	MW   string
+	H1   string
+	H2   string
+	H3   string
+	Path string
 }
 
 func (IgnoredStatusLine) Type() StatusLineType         { return IgnoredStatusLineType }
@@ -68,34 +78,34 @@ func (RenamedOrCopiedStatusLine) Type() StatusLineType { return RenamedOrCopiedS
 func (UnmergedStatusLine) Type() StatusLineType        { return UnmergedStatusLineType }
 
 func validateChangedStatusLine(changedStatusLine ChangedStatusLine, line string) {
-	if changedStatusLine.sub != "N..." {
+	if changedStatusLine.Sub != "N..." {
 		log.Fatal("Error parsing " + line + " (submodules not supported yet)")
 	}
-	if !IsValidGitMode(changedStatusLine.mH) {
-		log.Fatal("Invalid git mode: " + changedStatusLine.mH + " in line: " + line)
+	if !IsValidGitMode(changedStatusLine.MH) {
+		log.Fatal("Invalid git mode: " + changedStatusLine.MH + " in line: " + line)
 	}
-	if !IsValidGitMode(changedStatusLine.mI) {
-		log.Fatal("Invalid git mode: " + changedStatusLine.mI + " in line: " + line)
+	if !IsValidGitMode(changedStatusLine.MI) {
+		log.Fatal("Invalid git mode: " + changedStatusLine.MI + " in line: " + line)
 	}
-	if !IsValidGitMode(changedStatusLine.mW) {
-		log.Fatal("Invalid git mode: " + changedStatusLine.mW + " in line: " + line)
+	if !IsValidGitMode(changedStatusLine.MW) {
+		log.Fatal("Invalid git mode: " + changedStatusLine.MW + " in line: " + line)
 	}
-	if !IsSupportedGitMode(changedStatusLine.mH) {
-		log.Fatal("Unsupported git mode: " + changedStatusLine.mH + " in line: " + line)
+	if !IsSupportedGitMode(changedStatusLine.MH) {
+		log.Fatal("Unsupported git mode: " + changedStatusLine.MH + " in line: " + line)
 	}
-	if !IsSupportedGitMode(changedStatusLine.mI) {
-		log.Fatal("Unsupported git mode: " + changedStatusLine.mI + " in line: " + line)
+	if !IsSupportedGitMode(changedStatusLine.MI) {
+		log.Fatal("Unsupported git mode: " + changedStatusLine.MI + " in line: " + line)
 	}
-	if !IsSupportedGitMode(changedStatusLine.mW) {
-		log.Fatal("Unsupported git mode: " + changedStatusLine.mW + " in line: " + line)
+	if !IsSupportedGitMode(changedStatusLine.MW) {
+		log.Fatal("Unsupported git mode: " + changedStatusLine.MW + " in line: " + line)
 	}
-	if fp.ChecksumGetAlgo(changedStatusLine.hH) == fp.UNKNOWN {
-		log.Fatal("Unknown checksum algorithm: " + changedStatusLine.hH + " in line: " + line)
+	if fp.ChecksumGetAlgo(changedStatusLine.HH) == fp.UNKNOWN {
+		log.Fatal("Unknown checksum algorithm: " + changedStatusLine.HH + " in line: " + line)
 	}
-	if fp.ChecksumGetAlgo(changedStatusLine.hI) == fp.UNKNOWN {
-		log.Fatal("Unknown checksum algorithm: " + changedStatusLine.hI + " in line: " + line)
+	if fp.ChecksumGetAlgo(changedStatusLine.HI) == fp.UNKNOWN {
+		log.Fatal("Unknown checksum algorithm: " + changedStatusLine.HI + " in line: " + line)
 	}
-	fp.ValidFilePathForOrtoOrDie(changedStatusLine.path)
+	fp.ValidFilePathForOrtoOrDie(changedStatusLine.Path)
 }
 
 // Field       Meaning
@@ -127,7 +137,6 @@ func validateChangedStatusLine(changedStatusLine ChangedStatusLine, line string)
 //	    This is only present in a renamed/copied entry, and
 //	    tells where the renamed/copied contents came from.
 //--------------------------------------------------------
-
 // X          Y     Meaning
 // -------------------------------------------------
 //	        [AMD]   not updated
@@ -174,10 +183,9 @@ func validateChangedStatusLine(changedStatusLine ChangedStatusLine, line string)
 // <path>      The pathname.
 //--------------------------------------------------------
 
-// TODO:
-//        Pathname Format Notes and -z
-//           When the -z option is given, pathnames are printed as is and without any quoting and lines are terminated with a NUL (ASCII 0x00) byte.
-//           Without the -z option, pathnames with "unusual" characters are quoted as explained for the configuration variable core.quotePath (see git-config(1)).
+// Pathname Format Notes and -z
+//   When the -z option is given, pathnames are printed as is and without any quoting and lines are terminated with a NUL (ASCII 0x00) byte.
+//   Without the -z option, pathnames with "unusual" characters are quoted as explained for the configuration variable core.quotePath (see git-config(1)).
 
 // TODO: use yield:
 func (xxx *XXX) CheckForEmptyLine(line string) bool {
@@ -195,6 +203,28 @@ func (xxx *XXX) CheckForEmptyLine(line string) bool {
 func (xxx *XXX) CheckForEmptyLineEnd() {
 	if xxx.emptyLineIndex != 0 && xxx.emptyLineIndex != xxx.lastLineIndex {
 		log.Fatal("Empty line not at the end in git output")
+	}
+}
+
+func JoinInputWhenNeededIter(input iter.Seq[string]) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		prevLine := ""
+		for line := range input {
+			if strings.HasPrefix(line, "2 ") {
+				prevLine = line
+				continue
+			}
+			if prevLine != "" {
+				line = prevLine + "\x00" + line
+				prevLine = ""
+			}
+			if !yield(line) {
+				return
+			}
+		}
+		if prevLine != "" {
+			log.Fatal("Incomplete line in git output")
+		}
 	}
 }
 
@@ -228,25 +258,45 @@ func RunStatus() []StatusLine {
 		log.Fatal(err)
 	}
 
-	var result []StatusLine
+	// TODO: stream this stuff
 	output := string(out)
+	return ParseLines(output)
+}
+
+func ParseLines(output string) []StatusLine {
+	println(strings.ReplaceAll(output, "\x00", "\n"))
+	var result []StatusLine
 	lines := strings.SplitSeq(output, "\x00")
-	var prevLine string
+	//var prevLine string
 	var xxx XXX
-	for line := range lines {
-		if xxx.CheckForEmptyLine(line) && JoinInputWhenNeeded(&line, &prevLine) {
-			result = append(result, parseLine(line))
+	for line := range JoinInputWhenNeededIter(lines) {
+		if xxx.CheckForEmptyLine(line) {
+			result = append(result, ParseLine(line))
 			println(line)
 		}
 	}
 	xxx.CheckForEmptyLineEnd()
-	JoinInputWhenNeededEnd(&prevLine)
 	log.Printf("%#v\n", result)
 	return result
 }
 
-// TODO: even though it's using \x00, it's not receiving NUL bytes.
-func parseLine(line string) StatusLine {
+const (
+	xy    = `([MARCDU?!.]{2})`
+	sub   = `(N[.]{3}|S[C.][M.][U.])`
+	mode  = `([0-7]+)`
+	hash  = `([0-9a-fA-F]+)`
+	score = `([CR]\d+)`
+	path  = `([^\x00]+)`
+)
+
+var (
+	re1 = regexp.MustCompile("^1 " + xy + " " + sub + " " + mode + " " + mode + " " + mode + " " + hash + " " + hash + " " + path + "$")
+	re2 = regexp.MustCompile("^2 " + xy + " " + sub + " " + mode + " " + mode + " " + mode + " " + hash + " " + hash + " " + score + " " + path + "\x00" + path + "$")
+	reU = regexp.MustCompile("^u " + xy + " " + sub + " " + mode + " " + mode + " " + mode + " " + mode + " " + hash + " " + hash + " " + hash + " " + path + "$")
+)
+
+func ParseLine(line string) StatusLine {
+
 	if strings.HasPrefix(line, "#") {
 		return CommentStatusLine{comment: line[1:]}
 	} else if strings.HasPrefix(line, "! ") {
@@ -254,56 +304,67 @@ func parseLine(line string) StatusLine {
 		return IgnoredStatusLine{Path: line[2:]}
 	} else if strings.HasPrefix(line, "? ") {
 		fp.ValidFilePathForOrtoOrDie(line[2:])
-		return UntrackedStatusLine{path: line[2:]}
+		return UntrackedStatusLine{Path: line[2:]}
 	} else if strings.HasPrefix(line, "u ") {
-		// TODO: this is untested and incomplete:
+		// TODO: this is untested:
 		// u <XY> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>
-		re := regexp.MustCompile(`^u \s*(\S{2})\s+(\S{4})\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)\s+([^\x00]+)$`)
-		matches := re.FindStringSubmatch(line)
+		matches := reU.FindStringSubmatch(line)
 		if matches == nil {
 			log.Fatal("Error parsing " + line)
 		}
-		fp.ValidFilePathForOrtoOrDie(matches[10])
-		return UnmergedStatusLine{path: matches[10]}
+		unmergedStatusLine := UnmergedStatusLine{
+			Xy:   matches[1],
+			Sub:  matches[2],
+			M1:   matches[3],
+			M2:   matches[4],
+			M3:   matches[5],
+			MW:   matches[6],
+			H1:   matches[7],
+			H2:   matches[8],
+			H3:   matches[9],
+			Path: matches[10],
+		}
+		fp.ValidFilePathForOrtoOrDie(unmergedStatusLine.Path)
+		return unmergedStatusLine
 	} else if strings.HasPrefix(line, "1 ") {
 		// 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>
 		//1 .M N... 100644 100644 100644 e424a2f681538c6794e104ae2118919b3a2b74ef e424a2f681538c6794e104ae2118919b3a2b74ef git/status.go
-		re := regexp.MustCompile(`^1 (\S{2}) (\S{4}) (\d+) (\d+) (\d+) ([0-9a-fA-F]+) ([0-9a-fA-F]+) ([^\x00]+)$`)
-		matches := re.FindStringSubmatch(line)
+		// 1 .D N... 100644 100644 000000 45b983be36b73c0788dc9cbcb76cbb80fc7bb057 45b983be36b73c0788dc9cbcb76cbb80fc7bb057 deleteme
+		matches := re1.FindStringSubmatch(line)
 		if matches == nil {
 			log.Fatal("Error parsing " + line)
 		}
 
-		changedStatusLine := ChangedStatusLine{xy: matches[1],
-			sub:  matches[2],
-			mH:   matches[3],
-			mI:   matches[4],
-			mW:   matches[5],
-			hH:   matches[6],
-			hI:   matches[7],
-			path: matches[8]}
+		changedStatusLine := ChangedStatusLine{Xy: matches[1],
+			Sub:  matches[2],
+			MH:   matches[3],
+			MI:   matches[4],
+			MW:   matches[5],
+			HH:   matches[6],
+			HI:   matches[7],
+			Path: matches[8]}
 		validateChangedStatusLine(changedStatusLine, line)
 		//log.Printf("%#v\n", changedStatusLine)
 		return changedStatusLine
 	} else if strings.HasPrefix(line, "2 ") {
 		// 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <X><score> <path><sep><origPath>
 		// 2 R. N... 100644 100644 100644 37ee65c344d8ab16aebbed88699b77f3a0f2ee7f 37ee65c344d8ab16aebbed88699b77f3a0f2ee7f R100 git/blob.go   git/gitfile.go
-		re := regexp.MustCompile(`^2 (\S{2}) (\S{4}) (\d+) (\d+) (\d+) ([0-9a-fA-F]+) ([0-9a-fA-F]+) ([CR]\d+) ([^\x00]+)\x00([^\x00]+)$`)
-		matches := re.FindStringSubmatch(line)
-		changedStatusLine := ChangedStatusLine{xy: matches[1],
-			sub:  matches[2],
-			mH:   matches[3],
-			mI:   matches[4],
-			mW:   matches[5],
-			hH:   matches[6],
-			hI:   matches[7],
-			path: matches[9]}
+		matches := re2.FindStringSubmatch(line)
+		changedStatusLine := ChangedStatusLine{
+			Xy:   matches[1],
+			Sub:  matches[2],
+			MH:   matches[3],
+			MI:   matches[4],
+			MW:   matches[5],
+			HH:   matches[6],
+			HI:   matches[7],
+			Path: matches[9]}
 		validateChangedStatusLine(changedStatusLine, line)
-		renamedOrCopiedStatusLine := RenamedOrCopiedStatusLine{score: matches[8], origPath: matches[10], change: changedStatusLine}
+		renamedOrCopiedStatusLine := RenamedOrCopiedStatusLine{Score: matches[8], OrigPath: matches[10], Change: changedStatusLine}
 		if matches == nil {
 			log.Fatal("Error parsing " + line)
 		}
-		fp.ValidFilePathForOrtoOrDie(renamedOrCopiedStatusLine.origPath)
+		fp.ValidFilePathForOrtoOrDie(renamedOrCopiedStatusLine.OrigPath)
 		log.Printf("%#v\n", renamedOrCopiedStatusLine)
 		return renamedOrCopiedStatusLine
 		// u <xy> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>

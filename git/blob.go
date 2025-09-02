@@ -18,6 +18,7 @@ type Blob struct {
 type Mode string
 
 const (
+	Deleted    Mode = "000000"
 	Directory  Mode = "40000"
 	File       Mode = "100644"
 	Executable Mode = "100755"
@@ -27,13 +28,13 @@ const (
 
 func IsValidGitMode(mode string) bool {
 	m := Mode(mode)
-	return m == Directory || m == File || m == Executable || m == Symlink || m == Submodule
+	return m == Directory || m == File || m == Executable || m == Symlink || m == Submodule || m == Deleted
 }
 
 func IsSupportedGitMode(mode string) bool {
 	m := Mode(mode)
 	// TODO: will we ever need Directory? Probably not because we are looking just for files.
-	return IsValidGitMode(mode) && m != Symlink && m != Submodule && m != Directory
+	return m == File || m == Executable || m == Deleted
 }
 
 func NewGitFile(objectType, path, checksum, mode string) Blob {
