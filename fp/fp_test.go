@@ -1,6 +1,7 @@
 package fp_test
 
 import (
+	"log"
 	"path/filepath"
 	"testing"
 
@@ -8,9 +9,43 @@ import (
 	"github.com/anknetau/orto/fp"
 )
 
+func diff(filepath1, filepath2 string) string {
+	if !filepath.IsAbs(filepath1) || !filepath.IsAbs(filepath2) {
+		log.Fatal("this needs absolute paths!")
+	}
+	filepath1 = filepath.Clean(filepath1)
+	filepath2 = filepath.Clean(filepath2)
+	//a := removeSeparators(fp.SplitFilePath(filepath1))
+	//b := removeSeparators(fp.SplitFilePath(filepath2))
+	return ""
+}
+
+func TestDirectoryIsParentOfOrEqual(t *testing.T) {
+	assert.Equal(t, true, fp.AbsolutePathIsParentOrEqual("/a", "/a/b"))
+	assert.Equal(t, []string{"a"}, fp.FilepathParts("/a"))
+
+	assert.Equal(t, true, fp.AbsolutePathIsParentOrEqual("/a//b/c/d", "/a/b/c/d"))
+	assert.Equal(t, false, fp.AbsolutePathIsParentOrEqual("/a", "/b"))
+
+	assert.Equal(t, true, fp.AbsolutePathIsParentOrEqual("/Users/ank/dev/orto/orto", "/Users/ank/dev/orto/orto/dest/../dest/."))
+	assert.Equal(t, false, fp.AbsolutePathIsParentOrEqual("/Users/ank/dev/orto/orto/dest/../dest/.", "/Users/ank/dev/orto/orto"))
+}
+
+func TestFilepathParts(t *testing.T) {
+	assert.Equal(t, []string{"a"}, fp.FilepathParts("/a"))
+	assert.Equal(t, []string{"a", "b", "c", "d"}, fp.FilepathParts("/a//b/c/d"))
+	assert.Equal(t, []string{"a", "b", "c", "d"}, fp.FilepathParts("/a/b/c/d"))
+	assert.Equal(t, []string{}, fp.FilepathParts("/a/.."))
+	assert.Equal(t, []string{"a", "b"}, fp.FilepathParts("/a/./b"))
+	assert.Equal(t, []string{"a"}, fp.FilepathParts("/a///./"))
+	assert.Equal(t, []string{"a", "b", "c", "d", "eff123"}, fp.FilepathParts("/a/b/c/d////eff123"))
+}
+
 func TestJoined(t *testing.T) {
-	assert.Equal(t, "/a/c", filepath.Join("/", "a", "c"))
-	assert.Equal(t, "/a/c", filepath.Join("/a/.", "./c"))
+	abs1 := "/a"
+	abs2 := "/a/b"
+	_ = diff(abs1, abs2)
+	//assert.Equal(t, "", filepath)
 }
 
 func TestValidFilePathForOrto(t *testing.T) {

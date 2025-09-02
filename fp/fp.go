@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -153,4 +154,33 @@ func IsDirEmpty(path string) (bool, error) {
 	} else {
 		return false, err
 	}
+}
+
+func FilepathParts(f string) []string {
+	return removeSeparators(SplitFilePath(filepath.Clean(f)))
+}
+
+func removeSeparators(path []string) []string {
+	result := make([]string, 0, len(path))
+	for _, v := range path {
+		if v[0] != filepath.Separator {
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
+func AbsolutePathIsParentOrEqual(parent, child string) bool {
+	if !filepath.IsAbs(parent) || !filepath.IsAbs(child) {
+		log.Fatalf("AbsolutePathIsParentOrEqual: %s and %s are not both absolute", parent, child)
+	}
+	return startsWith(FilepathParts(child), FilepathParts(parent))
+}
+
+func AbsolutePathsAreUnrelated(a, b string) bool {
+	return !AbsolutePathIsParentOrEqual(a, b) && !AbsolutePathIsParentOrEqual(b, a)
+}
+
+func startsWith[T comparable](s, prefix []T) bool {
+	return len(prefix) <= len(s) && slices.Equal(s[:len(prefix)], prefix)
 }

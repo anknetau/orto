@@ -12,6 +12,5 @@ func GetRawContent(checksum string) []byte {
 	if err != nil {
 		log.Fatal(err)
 	}
-	println(len(out))
 	return out
 }

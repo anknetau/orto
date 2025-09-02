@@ -23,11 +23,21 @@ type Parameters struct {
 }
 
 func CheckAndUpdateParameters(params *Parameters) {
+	// TODO: Automatically resolve source/dest to be absolute paths
+	if !filepath.IsAbs(params.Source) {
+		log.Fatal("Source is not an absolute path: " + params.Source)
+	}
+	if !filepath.IsAbs(params.Destination) {
+		log.Fatal("Destination is not an absolute path: " + params.Destination)
+	}
 	CheckSourceDirectory(params.Source)
 	CheckDestinationDirectory(params.Destination)
 	params.Source = filepath.Clean(params.Source)
 	params.Destination = filepath.Clean(params.Destination)
-
+	// TODO: this is unsupported for now, but will change in the future - if eg the target is a compressed file
+	if !fp.AbsolutePathsAreUnrelated(params.Source, params.Destination) {
+		log.Fatalf("Source and destination are related: %s and %s", params.Source, params.Destination)
+	}
 	// TODO: check this properly:
 	if len(params.ChangeSetName) == 0 || strings.ContainsAny(params.ChangeSetName, string(filepath.Separator)+" ") {
 		log.Fatalf("Invalid ChangeSetName %s", params.ChangeSetName)

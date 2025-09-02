@@ -124,12 +124,6 @@ func isOrtoIgnored(fsFile *FSFile, destination string) bool {
 	if len(splitParts) > 0 && splitParts[0] == ".git" {
 		return true
 	}
-	// TODO: this is within the output!
-	// TODO: ensure this is the right way of comparing - think absolute vs. rel, etc.
-	if len(splitParts) > 0 && splitParts[0] == "dest" || fp.CleanFilePath(fsFile.CleanPath) == destination {
-		log.Fatalf("a! Orto ignored file: " + fsFile.CleanPath)
-		return true
-	}
 
 	//if len(parts) > 0 && parts[0] == ".venv" {
 	//	return true

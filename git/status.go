@@ -187,7 +187,28 @@ func validateChangedStatusLine(changedStatusLine ChangedStatusLine, line string)
 //   When the -z option is given, pathnames are printed as is and without any quoting and lines are terminated with a NUL (ASCII 0x00) byte.
 //   Without the -z option, pathnames with "unusual" characters are quoted as explained for the configuration variable core.quotePath (see git-config(1)).
 
-// TODO: use yield:
+func CheckForEmptyLineIter(input iter.Seq[string]) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		emptyLineIndex := 0
+		lastLineIndex := 0
+		for line := range input {
+			lastLineIndex++
+			if line != "" {
+				if !yield(line) {
+					return
+				}
+			}
+			if emptyLineIndex != 0 {
+				log.Fatal("More than one empty line in git output")
+			}
+			emptyLineIndex = lastLineIndex
+		}
+		if emptyLineIndex != 0 && emptyLineIndex != lastLineIndex {
+			log.Fatal("Empty line not at the end in git output")
+		}
+	}
+}
+
 func (xxx *XXX) CheckForEmptyLine(line string) bool {
 	xxx.lastLineIndex++
 	if line != "" {
@@ -264,19 +285,17 @@ func RunStatus() []StatusLine {
 }
 
 func ParseLines(output string) []StatusLine {
-	println(strings.ReplaceAll(output, "\x00", "\n"))
 	var result []StatusLine
 	lines := strings.SplitSeq(output, "\x00")
 	//var prevLine string
-	var xxx XXX
+	var xxx XXX // TODO: fix this
 	for line := range JoinInputWhenNeededIter(lines) {
 		if xxx.CheckForEmptyLine(line) {
 			result = append(result, ParseLine(line))
-			println(line)
 		}
 	}
 	xxx.CheckForEmptyLineEnd()
-	log.Printf("%#v\n", result)
+	//log.Printf("%#v\n", result)
 	return result
 }
 

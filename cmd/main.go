@@ -54,7 +54,7 @@ func main() {
 		// "/Users/ank/dev/accounting/accounting"
 		// "/Users/ank/dev/mirrors"
 		Source:        "/Users/ank/dev/orto/orto",
-		Destination:   "/Users/ank/dev/orto/orto/dest/../dest/.", // TODO: this is within the source!
+		Destination:   "/Users/ank/dev/orto/orto/../dest/.",
 		ChangeSetName: "2025-01-01-my-thing",
 		//CopyDotGit:          false,
 		//CopyGitIgnoredFiles: false,
