@@ -197,6 +197,7 @@ func CheckForEmptyLineIter(input iter.Seq[string]) iter.Seq[string] {
 				if !yield(line) {
 					return
 				}
+				continue
 			}
 			if emptyLineIndex != 0 {
 				log.Fatal("More than one empty line in git output")
@@ -206,24 +207,6 @@ func CheckForEmptyLineIter(input iter.Seq[string]) iter.Seq[string] {
 		if emptyLineIndex != 0 && emptyLineIndex != lastLineIndex {
 			log.Fatal("Empty line not at the end in git output")
 		}
-	}
-}
-
-func (xxx *XXX) CheckForEmptyLine(line string) bool {
-	xxx.lastLineIndex++
-	if line != "" {
-		return true
-	}
-	if xxx.emptyLineIndex != 0 {
-		log.Fatal("More than one empty line in git output")
-	}
-	xxx.emptyLineIndex = xxx.lastLineIndex
-	return false
-}
-
-func (xxx *XXX) CheckForEmptyLineEnd() {
-	if xxx.emptyLineIndex != 0 && xxx.emptyLineIndex != xxx.lastLineIndex {
-		log.Fatal("Empty line not at the end in git output")
 	}
 }
 
@@ -249,29 +232,6 @@ func JoinInputWhenNeededIter(input iter.Seq[string]) iter.Seq[string] {
 	}
 }
 
-func JoinInputWhenNeeded(line *string, prevLine *string) bool {
-	if strings.HasPrefix(*line, "2 ") {
-		*prevLine = *line
-		return false
-	}
-	if *prevLine != "" {
-		*line = *prevLine + "\x00" + *line
-		*prevLine = ""
-	}
-	return true
-}
-
-func JoinInputWhenNeededEnd(prevLine *string) {
-	if *prevLine != "" {
-		log.Fatal("Incomplete line in git output")
-	}
-}
-
-type XXX struct {
-	emptyLineIndex int
-	lastLineIndex  int
-}
-
 func RunStatus() []StatusLine {
 	cmd := exec.Command("git", "status", "--porcelain=v2", "--untracked-files=all", "--show-stash", "--branch", "--ignored", "-z")
 	out, err := cmd.Output()
@@ -287,14 +247,9 @@ func RunStatus() []StatusLine {
 func ParseLines(output string) []StatusLine {
 	var result []StatusLine
 	lines := strings.SplitSeq(output, "\x00")
-	//var prevLine string
-	var xxx XXX // TODO: fix this
-	for line := range JoinInputWhenNeededIter(lines) {
-		if xxx.CheckForEmptyLine(line) {
-			result = append(result, ParseLine(line))
-		}
+	for line := range CheckForEmptyLineIter(JoinInputWhenNeededIter(lines)) {
+		result = append(result, ParseLine(line))
 	}
-	xxx.CheckForEmptyLineEnd()
 	//log.Printf("%#v\n", result)
 	return result
 }
