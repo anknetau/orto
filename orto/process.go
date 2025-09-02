@@ -1,0 +1,193 @@
+package orto
+
+import (
+	"encoding/json"
+	"log"
+	"os"
+	"path/filepath"
+
+	"github.com/anknetau/orto/fp"
+	"github.com/anknetau/orto/git"
+)
+
+// TODO: rename this:
+type Both struct {
+	FsFile  FSFile
+	GitFile git.Blob
+}
+
+func Index[T any](items []T, callback func(T) string) map[string]T {
+	fsFileIndex := make(map[string]T, len(items))
+	for _, fsFile := range items {
+		fsFileIndex[callback(fsFile)] = fsFile
+	}
+	return fsFileIndex
+}
+
+func copyContents(src *os.File, dest *os.File) int64 {
+	n, err := dest.ReadFrom(src)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return n
+}
+
+func CopyFile(sourceRelativePath string, destRelativePath string, destAbsoluteDirectory string) int64 {
+	//println(sourceRelativePath + " copied to " + destRelativePath + " in " + destAbsoluteDirectory)
+	if !filepath.IsAbs(destAbsoluteDirectory) {
+		panic("Not an absolute directory: " + destAbsoluteDirectory)
+	}
+	if !filepath.IsLocal(sourceRelativePath) {
+		panic("Non-local source directory " + sourceRelativePath)
+	}
+	if !filepath.IsLocal(destRelativePath) {
+		panic("Non-local destRelativePath directory " + sourceRelativePath)
+	}
+	destAbsoluteFile := filepath.Join(destAbsoluteDirectory, destRelativePath)
+
+	// TODO: this is quick and dirty
+	read, err := os.Open(sourceRelativePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer read.Close()
+
+	// TODO: do this properly, eg make sure we are not going up a level
+	// TODO: we are assuming here that this is a file and not a directory.
+	// If that happens, then we are further assuming what's left is a directory.
+	dir, _ := filepath.Split(destRelativePath)
+	if len(dir) > 0 {
+		dirToCreate := filepath.Join(destAbsoluteDirectory, dir)
+		//println("Creating '" + dir + "' at [" + dirToCreate + "] '" + fn + "' for " + destRelativePath)
+		err = os.MkdirAll(dirToCreate, 0755)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	write, err := os.Create(destAbsoluteFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer write.Close()
+	return copyContents(read, write)
+}
+
+func PrintCopy(src string, dst string) {
+	println(src + " → " + dst)
+}
+
+func PrintDel(src string) {
+	println(src + " ❌ ")
+}
+
+func PrintChange(change Change) {
+	switch change.Kind {
+	case AddedKind:
+		println("❇️ Added", change.FsFile.CleanPath)
+	case DeletedKind:
+		println("❌ Deleted", change.Blob.CleanPath)
+	case UnchangedKind:
+		println("➖ Unchanged", change.FsFile.CleanPath)
+	case ModifiedKind:
+		println("✏️ Modified", change.FsFile.CleanPath)
+	case IgnoredByGitKind:
+		println("⛔︎ GitIgnored", change.FsFile.CleanPath)
+	case IgnoredByOrtoKind:
+		println("⛔︎ OrtoIgnored", change.FsFile.CleanPath)
+	}
+}
+
+func CompareFiles(fsFiles []FSFile, gitBlobs []git.Blob, fsFileIndex map[string]FSFile, gitFileIndex map[string]git.Blob) ([]Both, []FSFile, []git.Blob) {
+	var common []Both
+	var left []FSFile
+	var right []git.Blob
+	for _, fsFile := range fsFiles {
+		gitFile, ok := gitFileIndex[fsFile.CleanPath]
+		if ok {
+			common = append(common, Both{FsFile: fsFile, GitFile: gitFile})
+		} else {
+			left = append(left, fsFile)
+		}
+	}
+
+	for _, gitFile := range gitBlobs {
+		_, ok := fsFileIndex[gitFile.CleanPath]
+		if !ok {
+			right = append(right, gitFile)
+		}
+	}
+	return common, left, right
+}
+
+func isOrtoIgnored(fsFile *FSFile, destination string) bool {
+	splitParts := fp.SplitFilePath(fp.CleanFilePath(fsFile.CleanPath))
+	if len(splitParts) > 0 && splitParts[0] == ".git" {
+		return true
+	}
+	// TODO: this is within the output!
+	// TODO: ensure this is the right way of comparing - think absolute vs. rel, etc.
+	if len(splitParts) > 0 && splitParts[0] == "dest" || fp.CleanFilePath(fsFile.CleanPath) == destination {
+		log.Fatalf("a! Orto ignored file: " + fsFile.CleanPath)
+		return true
+	}
+
+	//if len(parts) > 0 && parts[0] == ".venv" {
+	//	return true
+	//}
+	//if len(parts) > 0 && parts[0] == "out" {
+	//	return true
+	//}
+	//if len(parts) > 0 && parts[0] == "lib" {
+	//	return true
+	//}
+	//if len(parts) > 0 && parts[len(parts)-1] == ".DS_Store" {
+	//	return true
+	//}
+	return false
+}
+
+func ComparePair(gitFile *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, destination string) Change {
+	if fsFile != nil {
+		if isOrtoIgnored(fsFile, destination) {
+			return Change{Kind: IgnoredByOrtoKind, FsFile: fsFile}
+		}
+		if _, ignored := gitIgnoredFilesIndex[fsFile.CleanPath]; ignored {
+			return Change{Kind: IgnoredByGitKind, FsFile: fsFile}
+		}
+	}
+	if gitFile == nil && fsFile == nil {
+		panic("Illegal state")
+	}
+	if gitFile != nil && fsFile != nil {
+		if gitFile.CleanPath != fsFile.CleanPath {
+			panic("Illegal state: " + gitFile.CleanPath + " " + fsFile.CleanPath)
+		}
+		// TODO: os.Stat follows symlinks apparently
+		stat, err := os.Stat(fsFile.Path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if stat.IsDir() {
+			panic("was dir: " + fsFile.Path)
+		}
+		calculatedChecksum := fp.ChecksumBlob(gitFile.Path, fp.ChecksumGetAlgo(gitFile.Checksum))
+		if calculatedChecksum == gitFile.Checksum {
+			return Change{Kind: UnchangedKind, FsFile: fsFile, Blob: gitFile}
+		} else {
+			return Change{Kind: ModifiedKind, FsFile: fsFile, Blob: gitFile}
+		}
+	} else if gitFile != nil {
+		return Change{Kind: DeletedKind, Blob: gitFile}
+	} else {
+		return Change{Kind: AddedKind, FsFile: fsFile}
+	}
+}
+
+func debug(value any) {
+	// fmt.Printf("%#v\n", entries)
+	b, err := json.MarshalIndent(value, "", " ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	println(string(b))
+}

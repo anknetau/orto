@@ -68,7 +68,9 @@ func TestSamples(t *testing.T) {
 func TestComments(t *testing.T) {
 	lines := "# branch.oid 35539293fc213ca0e573d35cae496b56a0f4ab06\x00# branch.head master\x00# branch.upstream origin/master\x00# branch.ab +0 -0"
 	statusLines := git.ParseLines(lines)
-	if newLine, ok := statusLines[0].(git.CommentStatusLine); ok {
-		// do something with newLine
-	}
+	assert.Equal(t, 4, len(statusLines))
+	assert.Equal(t, " branch.oid 35539293fc213ca0e573d35cae496b56a0f4ab06", statusLines[0].(git.CommentStatusLine).Comment)
+	assert.Equal(t, " branch.head master", statusLines[1].(git.CommentStatusLine).Comment)
+	assert.Equal(t, " branch.upstream origin/master", statusLines[2].(git.CommentStatusLine).Comment)
+	assert.Equal(t, " branch.ab +0 -0", statusLines[3].(git.CommentStatusLine).Comment)
 }

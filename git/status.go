@@ -40,7 +40,7 @@ type UntrackedStatusLine struct {
 }
 
 type CommentStatusLine struct {
-	comment string
+	Comment string
 }
 type ChangedStatusLine struct {
 	Xy   string
@@ -298,7 +298,7 @@ var (
 func ParseLine(line string) StatusLine {
 
 	if strings.HasPrefix(line, "#") {
-		return CommentStatusLine{comment: line[1:]}
+		return CommentStatusLine{Comment: line[1:]}
 	} else if strings.HasPrefix(line, "! ") {
 		fp.ValidFilePathForOrtoOrDie(line[2:])
 		return IgnoredStatusLine{Path: line[2:]}
