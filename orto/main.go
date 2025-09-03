@@ -25,8 +25,9 @@ type Inputs struct {
 }
 
 type Output struct {
-	absDestinationDir          string
-	absDestinationChangeSetDir string
+	absDestinationDir               string
+	absDestinationChangeSetDir      string
+	absDestinationChangeSetJsonFile string
 }
 
 func Start(params Parameters) {
@@ -142,6 +143,10 @@ func write(_ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change
 		log.Fatal(err)
 	}
 
+	jsonOut := JsonOutput{absDestinationChangeSetJsonFile: output.absDestinationChangeSetJsonFile}
+	defer jsonOut.close()
+	jsonOut.start()
+
 	for _, change := range allChanges {
 		//fmt.Printf("%#v,%#v\n", change.FsFile, change.Blob)
 		validateChange(change)
@@ -154,8 +159,9 @@ func write(_ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change
 			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
 			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
 		case DeletedKind:
-			// TODO: copy the deleted file?
-			// TODO: save the "deletion" somewhere
+			SaveGitBlob(change.Blob.Checksum, change.Blob.CleanPath, output.absDestinationChangeSetDir)
+			jsonOut.maybeAddComma()
+			jsonOut.encode(change.Blob)
 			PrintLogDel(change.Blob.CleanPath)
 		case UnchangedKind:
 			if copyUnchangedFiles {
@@ -166,9 +172,11 @@ func write(_ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change
 			// TODO
 		case IgnoredByOrtoKind:
 			// TODO
-
 		}
 	}
+
+	PrintLogHeader("Written " + output.absDestinationChangeSetJsonFile)
+
 	PrintLogHeader("Finished")
 }
 
@@ -195,12 +203,12 @@ func validateChange(c Change) {
 			panic("Illegal state")
 		}
 	case IgnoredByGitKind:
-		// Only fsfile
+		// Only FSFile
 		if c.FsFile == nil || c.Blob != nil {
 			panic("Illegal state")
 		}
 	case IgnoredByOrtoKind:
-		// Only fsfile
+		// Only FSFile
 		if c.FsFile == nil || c.Blob != nil {
 			panic("Illegal state")
 		}

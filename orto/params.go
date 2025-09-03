@@ -49,8 +49,11 @@ func checkAndUpdateParameters(params *Parameters) (string, Output) {
 	if len(params.ChangeSetName) == 0 || strings.ContainsAny(params.ChangeSetName, string(filepath.Separator)+" ") {
 		log.Fatalf("Invalid ChangeSetName %s", params.ChangeSetName)
 	}
-	absDestinationChangeSetDir := filepath.Join(absDestinationDir, params.ChangeSetName)
-	return absSourceDir, Output{absDestinationDir: absDestinationDir, absDestinationChangeSetDir: absDestinationChangeSetDir}
+	return absSourceDir, Output{
+		absDestinationDir:               absDestinationDir,
+		absDestinationChangeSetJsonFile: filepath.Join(absDestinationDir, params.ChangeSetName+".json"),
+		absDestinationChangeSetDir:      filepath.Join(absDestinationDir, params.ChangeSetName),
+	}
 }
 
 func CheckSourceDirectory(path string) {

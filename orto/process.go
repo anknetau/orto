@@ -43,6 +43,14 @@ func copyContents(src *os.File, dest *os.File) int64 {
 	return n
 }
 
+func SaveGitBlob(checksum string, path string, destAbsoluteDirectory string) {
+	content := git.RunGetRawContent(checksum)
+	err := os.WriteFile(filepath.Join(destAbsoluteDirectory, path), content, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func CopyFile(sourceRelativePath string, destRelativePath string, destAbsoluteDirectory string) int64 {
 	//println(sourceRelativePath + " copied to " + destRelativePath + " in " + destAbsoluteDirectory)
 	if !filepath.IsAbs(destAbsoluteDirectory) {
