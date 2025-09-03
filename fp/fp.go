@@ -156,6 +156,8 @@ func IsDirEmpty(path string) (bool, error) {
 	}
 }
 
+// FilepathParts will return an array of the non-separator parts of the given path.
+// For an empty string, it will return {"."}
 func FilepathParts(f string) []string {
 	return removeSeparators(SplitFilePath(filepath.Clean(f)))
 }
@@ -183,4 +185,40 @@ func AbsolutePathsAreUnrelated(a, b string) bool {
 
 func startsWith[T comparable](s, prefix []T) bool {
 	return len(prefix) <= len(s) && slices.Equal(s[:len(prefix)], prefix)
+}
+
+func CreateIntermediateDirectoriesForFile(relPathToFileNotDir string, destAbsoluteDirectory string) {
+	// TODO: test what happens when only part of the path already exists
+	// TODO: test what happens when part of the path exists and is a file and not a directory
+	if !filepath.IsAbs(destAbsoluteDirectory) {
+		panic("Not an absolute directory: " + destAbsoluteDirectory)
+	}
+	if filepath.IsAbs(relPathToFileNotDir) {
+		panic("Not a relative path: " + relPathToFileNotDir)
+	}
+	relPathWithoutFilename, _ := filepath.Split(relPathToFileNotDir)
+	parts := FilepathParts(relPathWithoutFilename)
+	if len(parts) == 0 {
+		panic("Invalid state")
+	}
+	if len(parts) == 1 && parts[0] == "." {
+		// No directories to create
+		return
+	}
+	absTargetDir := filepath.Join(destAbsoluteDirectory, relPathWithoutFilename)
+	//println("createIntermediateDirectoriesForFile " + relPathToFileNotDir + " to " + destAbsoluteDirectory + " dir=" + absTargetDir + ", relPathWithoutFilename=" + relPathWithoutFilename)
+	dirStat, err := os.Stat(absTargetDir)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(absTargetDir, 0755)
+		if err != nil {
+			log.Fatal(err)
+		}
+		//println("created " + absTargetDir)
+		return
+	} else if err != nil {
+		log.Fatal(err)
+	}
+	if !dirStat.IsDir() {
+		log.Fatalf("Source %s Already exists and is not a directory", relPathToFileNotDir)
+	}
 }

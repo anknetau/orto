@@ -39,6 +39,14 @@ func TestFilepathParts(t *testing.T) {
 	assert.Equal(t, []string{"a", "b"}, fp.FilepathParts("/a/./b"))
 	assert.Equal(t, []string{"a"}, fp.FilepathParts("/a///./"))
 	assert.Equal(t, []string{"a", "b", "c", "d", "eff123"}, fp.FilepathParts("/a/b/c/d////eff123"))
+
+	assert.Equal(t, []string{}, fp.FilepathParts("/"))
+
+	assert.Equal(t, ".", filepath.Clean(""))
+	assert.Equal(t, []string{"."}, fp.FilepathParts(""))
+	assert.Equal(t, []string{"."}, fp.FilepathParts("."))
+	assert.Equal(t, []string{"."}, fp.FilepathParts("././"))
+	assert.Equal(t, []string{"."}, fp.FilepathParts("./././///"))
 }
 
 func TestJoined(t *testing.T) {

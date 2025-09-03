@@ -44,6 +44,8 @@ func copyContents(src *os.File, dest *os.File) int64 {
 }
 
 func SaveGitBlob(checksum string, path string, destAbsoluteDirectory string) {
+	fp.CreateIntermediateDirectoriesForFile(path, destAbsoluteDirectory)
+
 	content := git.RunGetRawContent(checksum)
 	err := os.WriteFile(filepath.Join(destAbsoluteDirectory, path), content, 0644)
 	if err != nil {
@@ -64,25 +66,15 @@ func CopyFile(sourceRelativePath string, destRelativePath string, destAbsoluteDi
 	}
 	destAbsoluteFile := filepath.Join(destAbsoluteDirectory, destRelativePath)
 
-	// TODO: this is quick and dirty
+	// TODO: we are assuming here that this is a file and not a directory.
+	fp.CreateIntermediateDirectoriesForFile(destRelativePath, destAbsoluteDirectory)
+
 	read, err := os.Open(sourceRelativePath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer read.Close()
 
-	// TODO: do this properly, eg make sure we are not going up a level
-	// TODO: we are assuming here that this is a file and not a directory.
-	// If that happens, then we are further assuming what's left is a directory.
-	dir, _ := filepath.Split(destRelativePath)
-	if len(dir) > 0 {
-		dirToCreate := filepath.Join(destAbsoluteDirectory, dir)
-		//println("Creating '" + dir + "' at [" + dirToCreate + "] '" + fn + "' for " + destRelativePath)
-		err = os.MkdirAll(dirToCreate, 0755)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
 	write, err := os.Create(destAbsoluteFile)
 	if err != nil {
 		log.Fatal(err)
