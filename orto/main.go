@@ -16,49 +16,52 @@ import (
 // TODO: test in windows and linux
 
 type Status struct {
-	params       Parameters
-	fsFiles      []FSFile
-	gitBlobs     []git.Blob
-	fsFileIndex  map[string]FSFile
-	gitFileIndex map[string]git.Blob
-	gitStatus    []git.StatusLine
+	params               Parameters
+	fsFiles              []FSFile
+	gitBlobs             []git.Blob
+	fsFileIndex          map[string]FSFile
+	gitFileIndex         map[string]git.Blob
+	gitStatus            []git.StatusLine
+	gitIgnoredFilesIndex map[string]string
 }
 
 func Start(params Parameters) {
 	CheckAndUpdateParameters(&params)
+	status := gatherFiles(params)
+	allChanges := compareFiles(status, params)
+	write(status, params, allChanges)
+}
 
+func gatherFiles(params Parameters) Status {
 	// TODO: check for git version on startup, etc.
-
 	err := os.Chdir(params.Source)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	status := Status{
 		params:    params,
 		fsFiles:   FsReadDir(params.Source),
 		gitBlobs:  git.RunGetTreeForHead(),
 		gitStatus: git.RunStatus(),
 	}
-
 	status.fsFileIndex = Index(status.fsFiles, func(file FSFile) string {
 		return file.CleanPath
 	})
 	status.gitFileIndex = Index(status.gitBlobs, func(file git.Blob) string {
 		return file.CleanPath
 	})
-	var gitIgnoredFiles []string
-	for _, status := range status.gitStatus {
-		switch v := status.(type) {
-		case *git.IgnoredStatusLine:
-			gitIgnoredFiles = append(gitIgnoredFiles, v.Path)
-		default:
-		}
-	}
-	gitIgnoredFilesIndex := Index(gitIgnoredFiles, func(file string) string {
-		return file
-	})
 
+	var gitIgnoredFiles = Filter(status.gitStatus, func(statusLine *git.StatusLine) *string {
+		if val, ok := (*statusLine).(git.IgnoredStatusLine); ok {
+			return &val.Path
+		}
+		return nil
+	})
+	status.gitIgnoredFilesIndex = Index(gitIgnoredFiles, func(s string) string { return s })
+	return status
+}
+
+func compareFiles(status Status, params Parameters) []Change {
 	common, left, right := CompareFiles(status.fsFiles, status.gitBlobs, status.fsFileIndex, status.gitFileIndex)
 
 	// Filter out ignored
@@ -71,21 +74,20 @@ func Start(params Parameters) {
 
 	var allChanges []Change
 	for _, f := range left {
-		change := ComparePair(nil, &f, gitIgnoredFilesIndex, params.Destination)
+		change := ComparePair(nil, &f, status.gitIgnoredFilesIndex, params.Destination)
 		allChanges = append(allChanges, change)
 	}
 	for _, f := range right {
-		change := ComparePair(&f, nil, gitIgnoredFilesIndex, params.Destination)
+		change := ComparePair(&f, nil, status.gitIgnoredFilesIndex, params.Destination)
 		allChanges = append(allChanges, change)
 	}
 	for _, c := range common {
-		change := ComparePair(&c.GitFile, &c.FsFile, gitIgnoredFilesIndex, params.Destination)
+		change := ComparePair(&c.GitFile, &c.FsFile, status.gitIgnoredFilesIndex, params.Destination)
 		allChanges = append(allChanges, change)
 	}
 
 	for _, c := range allChanges {
-		switch c.Kind {
-		case AddedKind, ModifiedKind, DeletedKind:
+		if c.Kind == AddedKind || c.Kind == ModifiedKind || c.Kind == DeletedKind {
 			PrintChange(c)
 		}
 	}
@@ -121,8 +123,11 @@ func Start(params Parameters) {
 		}
 	}
 
-	println("---")
+	return allChanges
+}
 
+func write(_ Status, params Parameters, allChanges []Change) {
+	println("Writing output...")
 	for _, c := range allChanges {
 		//fmt.Printf("%#v,%#v\n", c.FsFile, c.Blob)
 		switch c.Kind {
@@ -141,6 +146,12 @@ func Start(params Parameters) {
 				CopyFile(c.FsFile.CleanPath, c.FsFile.CleanPath, params.Destination)
 				PrintCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
 			}
+		case IgnoredByGitKind:
+			// TODO
+		case IgnoredByOrtoKind:
+			// TODO
+
 		}
 	}
+	println("Done")
 }

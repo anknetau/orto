@@ -16,19 +16,19 @@ import (
 // When the -z option is given, pathnames are printed as is and without any quoting and lines are terminated with a NUL (ASCII 0x00) byte.
 // Without the -z option, pathnames with "unusual" characters are quoted as explained for the configuration variable core.quotePath (see git-config[1]).
 
-type StatusLineType int
+type StatusLineKind int
 
 const (
-	IgnoredStatusLineType StatusLineType = iota
-	UntrackedStatusLineType
-	CommentStatusLineType
-	ChangedStatusLineType
-	RenamedOrCopiedStatusLineType
-	UnmergedStatusLineType
+	IgnoredStatusLineKind StatusLineKind = iota
+	UntrackedStatusLineKind
+	CommentStatusLineKind
+	ChangedStatusLineKind
+	RenamedOrCopiedStatusLineKind
+	UnmergedStatusLineKind
 )
 
 type StatusLine interface {
-	Type() StatusLineType
+	Kind() StatusLineKind
 }
 
 type IgnoredStatusLine struct {
@@ -70,12 +70,12 @@ type UnmergedStatusLine struct {
 	Path string
 }
 
-func (IgnoredStatusLine) Type() StatusLineType         { return IgnoredStatusLineType }
-func (UntrackedStatusLine) Type() StatusLineType       { return UntrackedStatusLineType }
-func (CommentStatusLine) Type() StatusLineType         { return CommentStatusLineType }
-func (ChangedStatusLine) Type() StatusLineType         { return ChangedStatusLineType }
-func (RenamedOrCopiedStatusLine) Type() StatusLineType { return RenamedOrCopiedStatusLineType }
-func (UnmergedStatusLine) Type() StatusLineType        { return UnmergedStatusLineType }
+func (IgnoredStatusLine) Kind() StatusLineKind         { return IgnoredStatusLineKind }
+func (UntrackedStatusLine) Kind() StatusLineKind       { return UntrackedStatusLineKind }
+func (CommentStatusLine) Kind() StatusLineKind         { return CommentStatusLineKind }
+func (ChangedStatusLine) Kind() StatusLineKind         { return ChangedStatusLineKind }
+func (RenamedOrCopiedStatusLine) Kind() StatusLineKind { return RenamedOrCopiedStatusLineKind }
+func (UnmergedStatusLine) Kind() StatusLineKind        { return UnmergedStatusLineKind }
 
 func validateChangedStatusLine(changedStatusLine ChangedStatusLine, line string) {
 	if changedStatusLine.Sub != "N..." {

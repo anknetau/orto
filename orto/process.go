@@ -16,6 +16,17 @@ type Both struct {
 	GitFile git.Blob
 }
 
+func Filter[T any, U any](items []T, callback func(*T) *U) []U {
+	var result = make([]U, 0, len(items))
+	for _, item := range items {
+		val := callback(&item)
+		if val != nil {
+			result = append(result, *val)
+		}
+	}
+	return result
+}
+
 func Index[T any](items []T, callback func(T) string) map[string]T {
 	fsFileIndex := make(map[string]T, len(items))
 	for _, fsFile := range items {
