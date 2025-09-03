@@ -33,6 +33,7 @@ func Start(params Parameters) {
 }
 
 func gatherFiles(params Parameters) Status {
+	PrintLogHeader("Gathering files...")
 	// TODO: check for git version on startup, etc.
 	err := os.Chdir(params.Source)
 	if err != nil {
@@ -62,6 +63,7 @@ func gatherFiles(params Parameters) Status {
 }
 
 func compareFiles(status Status, params Parameters) []Change {
+	PrintLogHeader("Comparing...")
 	common, left, right := CompareFiles(status.fsFiles, status.gitBlobs, status.fsFileIndex, status.gitFileIndex)
 
 	// Filter out ignored
@@ -127,24 +129,24 @@ func compareFiles(status Status, params Parameters) []Change {
 }
 
 func write(_ Status, params Parameters, allChanges []Change) {
-	println("Writing output...")
+	PrintLogHeader("Writing output...")
 	for _, c := range allChanges {
 		//fmt.Printf("%#v,%#v\n", c.FsFile, c.Blob)
 		switch c.Kind {
 		case AddedKind, ModifiedKind:
 			if c.FsFile != nil { // TODO: why checking this here?
 				CopyFile(c.FsFile.CleanPath, c.FsFile.CleanPath, params.Destination)
-				PrintCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
+				PrintLogCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
 			}
 		case DeletedKind:
 			if c.Blob != nil { // TODO: why checking this here?
 				// TODO: actually do something with deletions
-				PrintDel(c.Blob.CleanPath)
+				PrintLogDel(c.Blob.CleanPath)
 			}
 		case UnchangedKind:
 			if params.Inclusions.UnchangedFiles {
 				CopyFile(c.FsFile.CleanPath, c.FsFile.CleanPath, params.Destination)
-				PrintCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
+				PrintLogCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
 			}
 		case IgnoredByGitKind:
 			// TODO
@@ -153,5 +155,5 @@ func write(_ Status, params Parameters, allChanges []Change) {
 
 		}
 	}
-	println("Done")
+	PrintLogHeader("Finished")
 }

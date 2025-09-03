@@ -83,28 +83,33 @@ func CopyFile(sourceRelativePath string, destRelativePath string, destAbsoluteDi
 	return copyContents(read, write)
 }
 
-func PrintCopy(src string, dst string) {
-	println(src + " → " + dst)
+func PrintLogHeader(s string) {
+	println("✴️ " + s)
+
 }
 
-func PrintDel(src string) {
-	println(src + " ❌ ")
+func PrintLogCopy(src string, dst string) {
+	println("  🔹" + src + " → " + dst)
+}
+
+func PrintLogDel(src string) {
+	println("  🔹" + src + " ❌ ")
 }
 
 func PrintChange(change Change) {
 	switch change.Kind {
 	case AddedKind:
-		println("❇️ Added", change.FsFile.CleanPath)
+		println("  ❇️ Added", change.FsFile.CleanPath)
 	case DeletedKind:
-		println("❌ Deleted", change.Blob.CleanPath)
+		println("  ❌ Deleted", change.Blob.CleanPath)
 	case UnchangedKind:
-		println("➖ Unchanged", change.FsFile.CleanPath)
+		println("  ➖ Unchanged", change.FsFile.CleanPath)
 	case ModifiedKind:
-		println("✏️ Modified", change.FsFile.CleanPath)
+		println("  ✏️ Modified", change.FsFile.CleanPath)
 	case IgnoredByGitKind:
-		println("⛔︎ GitIgnored", change.FsFile.CleanPath)
+		println("  ⛔︎ GitIgnored", change.FsFile.CleanPath)
 	case IgnoredByOrtoKind:
-		println("⛔︎ OrtoIgnored", change.FsFile.CleanPath)
+		println("  ⛔︎ OrtoIgnored", change.FsFile.CleanPath)
 	}
 }
 

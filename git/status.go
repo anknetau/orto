@@ -254,6 +254,7 @@ func ParseLines(output string) []StatusLine {
 	return result
 }
 
+//goland:noinspection SpellCheckingInspection
 const (
 	xy    = `([MARCDU?!.]{2})`
 	sub   = `(N[.]{3}|S[C.][M.][U.])`
