@@ -59,5 +59,8 @@ func main() {
 		//CopyDotGit:          false,
 		//CopyGitIgnoredFiles: false,
 		//CopyUnchangedFiles:  false,
+		Inclusions: orto.Inclusions{
+			UnchangedFiles: true,
+		},
 	})
 }

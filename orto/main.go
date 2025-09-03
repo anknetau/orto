@@ -15,8 +15,7 @@ import (
 // TODO: case change
 // TODO: test in windows and linux
 
-type Status struct {
-	params               Parameters
+type Inputs struct {
 	fsFiles              []FSFile
 	gitBlobs             []git.Blob
 	fsFileIndex          map[string]FSFile
@@ -25,44 +24,50 @@ type Status struct {
 	gitIgnoredFilesIndex map[string]string
 }
 
-func Start(params Parameters) {
-	CheckAndUpdateParameters(&params)
-	status := gatherFiles(params)
-	allChanges := compareFiles(status, params)
-	write(status, params, allChanges)
+type Output struct {
+	absDestinationDir          string
+	absDestinationChangeSetDir string
 }
 
-func gatherFiles(params Parameters) Status {
+func Start(params Parameters) {
+	absSourceDir, output := checkAndUpdateParameters(&params)
+	inputs := gatherFiles(absSourceDir)
+	allChanges := compareFiles(inputs)
+	write(inputs, output, params.Inclusions.UnchangedFiles, allChanges)
+}
+
+func gatherFiles(absSourceDir string) Inputs {
+	if !filepath.IsAbs(absSourceDir) {
+		panic("Not an absolute directory: " + absSourceDir)
+	}
 	PrintLogHeader("Gathering files...")
-	// TODO: check for git version on startup, etc.
-	err := os.Chdir(params.Source)
+	err := os.Chdir(absSourceDir)
 	if err != nil {
 		log.Fatal(err)
 	}
-	status := Status{
-		params:    params,
-		fsFiles:   FsReadDir(params.Source),
+	inputs := Inputs{
+		fsFiles:   FsReadDir(absSourceDir),
 		gitBlobs:  git.RunGetTreeForHead(),
 		gitStatus: git.RunStatus(),
 	}
-	status.fsFileIndex = Index(status.fsFiles, func(file FSFile) string {
+	inputs.fsFileIndex = Index(inputs.fsFiles, func(file FSFile) string {
 		return file.CleanPath
 	})
-	status.gitFileIndex = Index(status.gitBlobs, func(file git.Blob) string {
+	inputs.gitFileIndex = Index(inputs.gitBlobs, func(file git.Blob) string {
 		return file.CleanPath
 	})
 
-	var gitIgnoredFiles = Filter(status.gitStatus, func(statusLine *git.StatusLine) *string {
+	var gitIgnoredFiles = Filter(inputs.gitStatus, func(statusLine *git.StatusLine) *string {
 		if val, ok := (*statusLine).(git.IgnoredStatusLine); ok {
 			return &val.Path
 		}
 		return nil
 	})
-	status.gitIgnoredFilesIndex = Index(gitIgnoredFiles, func(s string) string { return s })
-	return status
+	inputs.gitIgnoredFilesIndex = Index(gitIgnoredFiles, func(s string) string { return s })
+	return inputs
 }
 
-func compareFiles(status Status, params Parameters) []Change {
+func compareFiles(status Inputs) []Change {
 	PrintLogHeader("Comparing...")
 	common, left, right := CompareFiles(status.fsFiles, status.gitBlobs, status.fsFileIndex, status.gitFileIndex)
 
@@ -76,15 +81,15 @@ func compareFiles(status Status, params Parameters) []Change {
 
 	var allChanges []Change
 	for _, f := range left {
-		change := ComparePair(nil, &f, status.gitIgnoredFilesIndex, params.Destination)
+		change := ComparePair(nil, &f, status.gitIgnoredFilesIndex)
 		allChanges = append(allChanges, change)
 	}
 	for _, f := range right {
-		change := ComparePair(&f, nil, status.gitIgnoredFilesIndex, params.Destination)
+		change := ComparePair(&f, nil, status.gitIgnoredFilesIndex)
 		allChanges = append(allChanges, change)
 	}
 	for _, c := range common {
-		change := ComparePair(&c.GitFile, &c.FsFile, status.gitIgnoredFilesIndex, params.Destination)
+		change := ComparePair(&c.GitFile, &c.FsFile, status.gitIgnoredFilesIndex)
 		allChanges = append(allChanges, change)
 	}
 
@@ -128,25 +133,34 @@ func compareFiles(status Status, params Parameters) []Change {
 	return allChanges
 }
 
-func write(_ Status, params Parameters, allChanges []Change) {
+func write(_ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change) {
 	PrintLogHeader("Writing output...")
-	for _, c := range allChanges {
-		//fmt.Printf("%#v,%#v\n", c.FsFile, c.Blob)
-		switch c.Kind {
-		case AddedKind, ModifiedKind:
-			if c.FsFile != nil { // TODO: why checking this here?
-				CopyFile(c.FsFile.CleanPath, c.FsFile.CleanPath, params.Destination)
-				PrintLogCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
-			}
+
+	// TODO: do this properly:
+	err := os.Mkdir(output.absDestinationChangeSetDir, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, change := range allChanges {
+		//fmt.Printf("%#v,%#v\n", change.FsFile, change.Blob)
+		validateChange(change)
+		switch change.Kind {
+		case AddedKind:
+			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
+			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
+		case ModifiedKind:
+			// TODO: copy the old file too
+			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
+			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
 		case DeletedKind:
-			if c.Blob != nil { // TODO: why checking this here?
-				// TODO: actually do something with deletions
-				PrintLogDel(c.Blob.CleanPath)
-			}
+			// TODO: copy the deleted file?
+			// TODO: save the "deletion" somewhere
+			PrintLogDel(change.Blob.CleanPath)
 		case UnchangedKind:
-			if params.Inclusions.UnchangedFiles {
-				CopyFile(c.FsFile.CleanPath, c.FsFile.CleanPath, params.Destination)
-				PrintLogCopy(c.FsFile.CleanPath, filepath.Join(params.Destination, c.FsFile.CleanPath))
+			if copyUnchangedFiles {
+				CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
+				PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
 			}
 		case IgnoredByGitKind:
 			// TODO
@@ -156,4 +170,39 @@ func write(_ Status, params Parameters, allChanges []Change) {
 		}
 	}
 	PrintLogHeader("Finished")
+}
+
+func validateChange(c Change) {
+	switch c.Kind {
+	case AddedKind:
+		// Only FsFile
+		if c.FsFile == nil || c.Blob != nil {
+			panic("Illegal state")
+		}
+	case DeletedKind:
+		// Only blob
+		if c.FsFile != nil || c.Blob == nil {
+			panic("Illegal state")
+		}
+	case UnchangedKind:
+		// Has both
+		if c.Blob == nil || c.FsFile == nil {
+			panic("Illegal state")
+		}
+	case ModifiedKind:
+		// Has both
+		if c.FsFile == nil || c.Blob == nil {
+			panic("Illegal state")
+		}
+	case IgnoredByGitKind:
+		// Only fsfile
+		if c.FsFile == nil || c.Blob != nil {
+			panic("Illegal state")
+		}
+	case IgnoredByOrtoKind:
+		// Only fsfile
+		if c.FsFile == nil || c.Blob != nil {
+			panic("Illegal state")
+		}
+	}
 }

@@ -22,7 +22,8 @@ type Parameters struct {
 	Inclusions    Inclusions
 }
 
-func CheckAndUpdateParameters(params *Parameters) {
+func checkAndUpdateParameters(params *Parameters) (string, Output) {
+	// TODO: check for git version on startup, etc.
 	// TODO: Automatically resolve source/dest to be absolute paths
 	if !filepath.IsAbs(params.Source) {
 		log.Fatal("Source is not an absolute path: " + params.Source)
@@ -32,22 +33,24 @@ func CheckAndUpdateParameters(params *Parameters) {
 	}
 	CheckSourceDirectory(params.Source)
 	CheckDestinationDirectory(params.Destination)
-	params.Source = filepath.Clean(params.Source)
-	params.Destination = filepath.Clean(params.Destination)
+	absSourceDir, err := filepath.Abs(params.Source)
+	if err != nil {
+		log.Fatal(err)
+	}
+	absDestinationDir, err := filepath.Abs(params.Destination)
+	if err != nil {
+		log.Fatal(err)
+	}
 	// TODO: this is unsupported for now, but will change in the future - if eg the target is a compressed file
-	if !fp.AbsolutePathsAreUnrelated(params.Source, params.Destination) {
+	if !fp.AbsolutePathsAreUnrelated(absSourceDir, absDestinationDir) {
 		log.Fatalf("Source and destination are related: %s and %s", params.Source, params.Destination)
 	}
 	// TODO: check this properly:
 	if len(params.ChangeSetName) == 0 || strings.ContainsAny(params.ChangeSetName, string(filepath.Separator)+" ") {
 		log.Fatalf("Invalid ChangeSetName %s", params.ChangeSetName)
 	}
-	params.Destination = filepath.Join(params.Destination, params.ChangeSetName) // TODO: do this properly
-	// TODO: do this properly:
-	err := os.Mkdir(params.Destination, 0755)
-	if err != nil {
-		log.Fatal(err)
-	}
+	absDestinationChangeSetDir := filepath.Join(absDestinationDir, params.ChangeSetName)
+	return absSourceDir, Output{absDestinationDir: absDestinationDir, absDestinationChangeSetDir: absDestinationChangeSetDir}
 }
 
 func CheckSourceDirectory(path string) {
@@ -72,7 +75,6 @@ func CheckSourceDirectory(path string) {
 	}
 }
 
-// CheckDestinationDirectory git status --porcelain=v2 --untracked-files=all --show-stash --branch --ignored
 func CheckDestinationDirectory(path string) {
 	// TODO: os.Stat follows symlinks apparently
 	destinationStat, err := os.Stat(path)

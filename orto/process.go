@@ -85,7 +85,6 @@ func CopyFile(sourceRelativePath string, destRelativePath string, destAbsoluteDi
 
 func PrintLogHeader(s string) {
 	println("✴️ " + s)
-
 }
 
 func PrintLogCopy(src string, dst string) {
@@ -135,7 +134,7 @@ func CompareFiles(fsFiles []FSFile, gitBlobs []git.Blob, fsFileIndex map[string]
 	return common, left, right
 }
 
-func isOrtoIgnored(fsFile *FSFile, destination string) bool {
+func isOrtoIgnored(fsFile *FSFile) bool {
 	splitParts := fp.SplitFilePath(fp.CleanFilePath(fsFile.CleanPath))
 	if len(splitParts) > 0 && splitParts[0] == ".git" {
 		return true
@@ -156,21 +155,21 @@ func isOrtoIgnored(fsFile *FSFile, destination string) bool {
 	return false
 }
 
-func ComparePair(gitFile *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, destination string) Change {
+func ComparePair(blob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string) Change {
 	if fsFile != nil {
-		if isOrtoIgnored(fsFile, destination) {
+		if isOrtoIgnored(fsFile) {
 			return Change{Kind: IgnoredByOrtoKind, FsFile: fsFile}
 		}
 		if _, ignored := gitIgnoredFilesIndex[fsFile.CleanPath]; ignored {
 			return Change{Kind: IgnoredByGitKind, FsFile: fsFile}
 		}
 	}
-	if gitFile == nil && fsFile == nil {
+	if blob == nil && fsFile == nil {
 		panic("Illegal state")
 	}
-	if gitFile != nil && fsFile != nil {
-		if gitFile.CleanPath != fsFile.CleanPath {
-			panic("Illegal state: " + gitFile.CleanPath + " " + fsFile.CleanPath)
+	if blob != nil && fsFile != nil {
+		if blob.CleanPath != fsFile.CleanPath {
+			panic("Illegal state: " + blob.CleanPath + " " + fsFile.CleanPath)
 		}
 		// TODO: os.Stat follows symlinks apparently
 		stat, err := os.Stat(fsFile.Path)
@@ -180,14 +179,14 @@ func ComparePair(gitFile *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[str
 		if stat.IsDir() {
 			panic("was dir: " + fsFile.Path)
 		}
-		calculatedChecksum := fp.ChecksumBlob(gitFile.Path, fp.ChecksumGetAlgo(gitFile.Checksum))
-		if calculatedChecksum == gitFile.Checksum {
-			return Change{Kind: UnchangedKind, FsFile: fsFile, Blob: gitFile}
+		calculatedChecksum := fp.ChecksumBlob(blob.Path, fp.ChecksumGetAlgo(blob.Checksum))
+		if calculatedChecksum == blob.Checksum {
+			return Change{Kind: UnchangedKind, FsFile: fsFile, Blob: blob}
 		} else {
-			return Change{Kind: ModifiedKind, FsFile: fsFile, Blob: gitFile}
+			return Change{Kind: ModifiedKind, FsFile: fsFile, Blob: blob}
 		}
-	} else if gitFile != nil {
-		return Change{Kind: DeletedKind, Blob: gitFile}
+	} else if blob != nil {
+		return Change{Kind: DeletedKind, Blob: blob}
 	} else {
 		return Change{Kind: AddedKind, FsFile: fsFile}
 	}
