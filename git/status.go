@@ -20,6 +20,15 @@ import (
 //go:generate go run golang.org/x/tools/cmd/stringer -type=StatusLineKind
 type StatusLineKind int
 
+type Status string
+
+func NewStatus(s string) Status {
+	if len(s) != 2 {
+		log.Fatal("Invalid status string: " + s)
+	}
+	return Status(s)
+}
+
 const (
 	StatusLineKindIgnored StatusLineKind = iota
 	StatusLineKindUntracked
@@ -46,7 +55,7 @@ type CommentStatusLine struct {
 }
 type ChangedStatusLine struct {
 	Path          string
-	Xy            string
+	Status        Status
 	Sub           string
 	ModeHead      Mode
 	ModeIndex     Mode
@@ -61,7 +70,7 @@ type RenamedOrCopiedStatusLine struct {
 }
 type UnmergedStatusLine struct {
 	Path           string
-	Xy             string
+	Status         Status
 	Sub            string
 	ModeStage1     Mode
 	ModeStage2     Mode
@@ -287,7 +296,7 @@ func ParseLine(line string) StatusLine {
 			log.Fatal("Error parsing " + line)
 		}
 		unmergedStatusLine := UnmergedStatusLine{
-			Xy:             matches[1],
+			Status:         NewStatus(matches[1]),
 			Sub:            matches[2],
 			ModeStage1:     NewMode(matches[3]),
 			ModeStage2:     NewMode(matches[4]),
@@ -309,7 +318,8 @@ func ParseLine(line string) StatusLine {
 			log.Fatal("Error parsing " + line)
 		}
 
-		changedStatusLine := ChangedStatusLine{Xy: matches[1],
+		changedStatusLine := ChangedStatusLine{
+			Status:        NewStatus(matches[1]),
 			Sub:           matches[2],
 			ModeHead:      NewMode(matches[3]),
 			ModeIndex:     NewMode(matches[4]),
@@ -325,7 +335,7 @@ func ParseLine(line string) StatusLine {
 		// 2 R. N... 100644 100644 100644 37ee65c344d8ab16aebbed88699b77f3a0f2ee7f 37ee65c344d8ab16aebbed88699b77f3a0f2ee7f R100 git/blob.go   git/gitfile.go
 		matches := re2.FindStringSubmatch(line)
 		changedStatusLine := ChangedStatusLine{
-			Xy:            matches[1],
+			Status:        NewStatus(matches[1]),
 			Sub:           matches[2],
 			ModeHead:      NewMode(matches[3]),
 			ModeIndex:     NewMode(matches[4]),

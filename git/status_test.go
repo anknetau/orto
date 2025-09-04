@@ -17,7 +17,7 @@ func assertLine[T any](t *testing.T, expected T, line string) {
 func TestSamples(t *testing.T) {
 	// Fake status lines:
 	assertLine(t, git.ChangedStatusLine{
-		Xy:            ".M",
+		Status:        ".M",
 		Sub:           "N...",
 		ModeHead:      "100644",
 		ModeIndex:     "000000",
@@ -28,7 +28,7 @@ func TestSamples(t *testing.T) {
 		"1 .M N... 100644 000000 100755 21809e0abf6af128398a1687adf8a0fc22d1ca88 45b983be36b73c0788dc9cbcb76cbb80fc7bb057 .idea/dictionaries/project.xml")
 	// Real status lines:
 	assertLine(t, git.ChangedStatusLine{
-		Xy:            ".M",
+		Status:        ".M",
 		Sub:           "N...",
 		ModeHead:      "100644",
 		ModeIndex:     "100644",
@@ -38,7 +38,7 @@ func TestSamples(t *testing.T) {
 		Path:          ".idea/dictionaries/project.xml"},
 		"1 .M N... 100644 100644 100644 21809e0abf6af128398a1687adf8a0fc22d1ca88 21809e0abf6af128398a1687adf8a0fc22d1ca88 .idea/dictionaries/project.xml")
 	assertLine(t, git.RenamedOrCopiedStatusLine{Change: git.ChangedStatusLine{
-		Xy:            "R.",
+		Status:        "R.",
 		Sub:           "N...",
 		ModeHead:      "100644",
 		ModeIndex:     "100644",
