@@ -97,16 +97,18 @@ func ValidFilePathForOrtoOrDie(path string) {
 	}
 }
 
+var (
+	reValidFilePathName = regexp.MustCompile(`^[a-zA-Z0-9_.\-~@#$%^&=+{}\[\]:;,<>()]+$`)
+)
+
 func ValidFilePathForOrto(path string) bool {
 	if len(path) == 0 {
 		return false
 	}
-	// TODO: move all regexps into global
-	re := regexp.MustCompile(`^[a-zA-Z0-9_.\-~@#$%^&=+{}\[\]:;,<>()]+$`)
 	parts := SplitFilePath(filepath.Clean(path))
 	for _, part := range parts {
 		if part[0] != filepath.Separator {
-			matches := re.FindStringSubmatch(part)
+			matches := reValidFilePathName.FindStringSubmatch(part)
 			if matches == nil {
 				return false
 			}

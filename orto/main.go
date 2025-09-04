@@ -24,6 +24,11 @@ type Inputs struct {
 	gitIgnoredFilesIndex map[string]string
 }
 
+type Input struct {
+	absSourceDir string
+	gitVersion   string
+}
+
 type Output struct {
 	absDestinationDir               string
 	absDestinationChangeSetDir      string
@@ -31,13 +36,15 @@ type Output struct {
 }
 
 func Start(params Parameters) {
-	absSourceDir, output := checkAndUpdateParameters(&params)
-	inputs := gatherFiles(absSourceDir)
+	input, output := checkAndUpdateParameters(&params)
+	inputs := gatherFiles(input)
 	allChanges := compareFiles(inputs)
 	write(inputs, output, params.Inclusions.UnchangedFiles, allChanges)
 }
 
-func gatherFiles(absSourceDir string) Inputs {
+func gatherFiles(input Input) Inputs {
+	absSourceDir := input.absSourceDir
+	PrintLogHeader("Found git version " + input.gitVersion)
 	if !filepath.IsAbs(absSourceDir) {
 		panic("Not an absolute directory: " + absSourceDir)
 	}

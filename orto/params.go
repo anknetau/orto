@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/anknetau/orto/fp"
+	"github.com/anknetau/orto/git"
 )
 
 type Inclusions struct {
@@ -22,8 +23,17 @@ type Parameters struct {
 	Inclusions    Inclusions
 }
 
-func checkAndUpdateParameters(params *Parameters) (string, Output) {
-	// TODO: check for git version on startup, etc.
+func findGitVersion() string {
+	gitVersion := git.RunVersion()
+	if gitVersion == nil {
+		log.Fatal("Could not find git")
+	}
+	return *gitVersion
+}
+
+func checkAndUpdateParameters(params *Parameters) (Input, Output) {
+	gitVersion := findGitVersion()
+	// TODO: look for .git in parent directories
 	// TODO: Automatically resolve source/dest to be absolute paths
 	if !filepath.IsAbs(params.Source) {
 		log.Fatal("Source is not an absolute path: " + params.Source)
@@ -49,11 +59,14 @@ func checkAndUpdateParameters(params *Parameters) (string, Output) {
 	if len(params.ChangeSetName) == 0 || strings.ContainsAny(params.ChangeSetName, string(filepath.Separator)+" ") {
 		log.Fatalf("Invalid ChangeSetName %s", params.ChangeSetName)
 	}
-	return absSourceDir, Output{
-		absDestinationDir:               absDestinationDir,
-		absDestinationChangeSetJsonFile: filepath.Join(absDestinationDir, params.ChangeSetName+".json"),
-		absDestinationChangeSetDir:      filepath.Join(absDestinationDir, params.ChangeSetName),
-	}
+	return Input{
+			absSourceDir: absSourceDir,
+			gitVersion:   gitVersion,
+		}, Output{
+			absDestinationDir:               absDestinationDir,
+			absDestinationChangeSetJsonFile: filepath.Join(absDestinationDir, params.ChangeSetName+".json"),
+			absDestinationChangeSetDir:      filepath.Join(absDestinationDir, params.ChangeSetName),
+		}
 }
 
 func CheckSourceDirectory(path string) {
