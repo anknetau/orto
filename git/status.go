@@ -21,12 +21,12 @@ import (
 type StatusLineKind int
 
 const (
-	IgnoredStatusLineKind StatusLineKind = iota
-	UntrackedStatusLineKind
-	CommentStatusLineKind
-	ChangedStatusLineKind
-	RenamedOrCopiedStatusLineKind
-	UnmergedStatusLineKind
+	StatusLineKindIgnored StatusLineKind = iota
+	StatusLineKindUntracked
+	StatusLineKindComment
+	StatusLineKindChanged
+	StatusLineKindRenamedOrCopied
+	StatusLineKindUnmerged
 )
 
 type StatusLine interface {
@@ -93,12 +93,12 @@ func PrintStatusLine(line *StatusLine) {
 	}
 }
 
-func (IgnoredStatusLine) Kind() StatusLineKind         { return IgnoredStatusLineKind }
-func (UntrackedStatusLine) Kind() StatusLineKind       { return UntrackedStatusLineKind }
-func (CommentStatusLine) Kind() StatusLineKind         { return CommentStatusLineKind }
-func (ChangedStatusLine) Kind() StatusLineKind         { return ChangedStatusLineKind }
-func (RenamedOrCopiedStatusLine) Kind() StatusLineKind { return RenamedOrCopiedStatusLineKind }
-func (UnmergedStatusLine) Kind() StatusLineKind        { return UnmergedStatusLineKind }
+func (IgnoredStatusLine) Kind() StatusLineKind         { return StatusLineKindIgnored }
+func (UntrackedStatusLine) Kind() StatusLineKind       { return StatusLineKindUntracked }
+func (CommentStatusLine) Kind() StatusLineKind         { return StatusLineKindComment }
+func (ChangedStatusLine) Kind() StatusLineKind         { return StatusLineKindChanged }
+func (RenamedOrCopiedStatusLine) Kind() StatusLineKind { return StatusLineKindRenamedOrCopied }
+func (UnmergedStatusLine) Kind() StatusLineKind        { return StatusLineKindUnmerged }
 
 func validateChangedStatusLine(changedStatusLine ChangedStatusLine, line string) {
 	if changedStatusLine.Sub != "N..." {

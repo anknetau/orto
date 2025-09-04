@@ -8,15 +8,15 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[IgnoredStatusLineKind-0]
-	_ = x[UntrackedStatusLineKind-1]
-	_ = x[CommentStatusLineKind-2]
-	_ = x[ChangedStatusLineKind-3]
-	_ = x[RenamedOrCopiedStatusLineKind-4]
-	_ = x[UnmergedStatusLineKind-5]
+	_ = x[StatusLineKindIgnored-0]
+	_ = x[StatusLineKindUntracked-1]
+	_ = x[StatusLineKindComment-2]
+	_ = x[StatusLineKindChanged-3]
+	_ = x[StatusLineKindRenamedOrCopied-4]
+	_ = x[StatusLineKindUnmerged-5]
 }
 
-const _StatusLineKind_name = "IgnoredStatusLineKindUntrackedStatusLineKindCommentStatusLineKindChangedStatusLineKindRenamedOrCopiedStatusLineKindUnmergedStatusLineKind"
+const _StatusLineKind_name = "StatusLineKindIgnoredStatusLineKindUntrackedStatusLineKindCommentStatusLineKindChangedStatusLineKindRenamedOrCopiedStatusLineKindUnmerged"
 
 var _StatusLineKind_index = [...]uint8{0, 21, 44, 65, 86, 115, 137}
 
