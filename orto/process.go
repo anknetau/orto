@@ -97,17 +97,17 @@ func PrintLogDel(src string) {
 
 func PrintChange(change Change) {
 	switch change.Kind {
-	case AddedKind:
+	case ChangeKindAdded:
 		println("  ❇️ Added", change.FsFile.CleanPath)
-	case DeletedKind:
+	case ChangeKindDeleted:
 		println("  ❌ Deleted", change.Blob.CleanPath)
-	case UnchangedKind:
+	case ChangeKindUnchanged:
 		println("  ➖ Unchanged", change.FsFile.CleanPath)
-	case ModifiedKind:
+	case ChangeKindModified:
 		println("  ✏️ Modified", change.FsFile.CleanPath)
-	case IgnoredByGitKind:
+	case ChangeKindIgnoredByGit:
 		println("  ⛔︎ GitIgnored", change.FsFile.CleanPath)
-	case IgnoredByOrtoKind:
+	case ChangeKindIgnoredByOrto:
 		println("  ⛔︎ OrtoIgnored", change.FsFile.CleanPath)
 	}
 }
@@ -158,10 +158,10 @@ func isOrtoIgnored(fsFile *FSFile) bool {
 func ComparePair(blob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string) Change {
 	if fsFile != nil {
 		if isOrtoIgnored(fsFile) {
-			return Change{Kind: IgnoredByOrtoKind, FsFile: fsFile}
+			return Change{Kind: ChangeKindIgnoredByOrto, FsFile: fsFile}
 		}
 		if _, ignored := gitIgnoredFilesIndex[fsFile.CleanPath]; ignored {
-			return Change{Kind: IgnoredByGitKind, FsFile: fsFile}
+			return Change{Kind: ChangeKindIgnoredByGit, FsFile: fsFile}
 		}
 	}
 	if blob == nil && fsFile == nil {
@@ -181,14 +181,14 @@ func ComparePair(blob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string
 		}
 		calculatedChecksum := fp.ChecksumBlob(blob.Path, fp.ChecksumGetAlgo(blob.Checksum))
 		if calculatedChecksum == blob.Checksum {
-			return Change{Kind: UnchangedKind, FsFile: fsFile, Blob: blob}
+			return Change{Kind: ChangeKindUnchanged, FsFile: fsFile, Blob: blob}
 		} else {
-			return Change{Kind: ModifiedKind, FsFile: fsFile, Blob: blob}
+			return Change{Kind: ChangeKindModified, FsFile: fsFile, Blob: blob}
 		}
 	} else if blob != nil {
-		return Change{Kind: DeletedKind, Blob: blob}
+		return Change{Kind: ChangeKindDeleted, Blob: blob}
 	} else {
-		return Change{Kind: AddedKind, FsFile: fsFile}
+		return Change{Kind: ChangeKindAdded, FsFile: fsFile}
 	}
 }
 

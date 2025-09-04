@@ -96,17 +96,17 @@ func compareFiles(status Inputs) []Change {
 	}
 
 	for _, c := range allChanges {
-		if c.Kind == AddedKind || c.Kind == ModifiedKind || c.Kind == DeletedKind {
+		if c.Kind == ChangeKindAdded || c.Kind == ChangeKindModified || c.Kind == ChangeKindDeleted {
 			PrintChange(c)
 		}
 	}
 	for _, c := range allChanges {
-		if c.Kind == UnchangedKind {
+		if c.Kind == ChangeKindUnchanged {
 			PrintChange(c)
 		}
 	}
 	for _, c := range allChanges {
-		if c.Kind == IgnoredByGitKind {
+		if c.Kind == ChangeKindIgnoredByGit {
 			PrintChange(c)
 		}
 	}
@@ -114,7 +114,7 @@ func compareFiles(status Inputs) []Change {
 	ortoIgnores := 0
 	ortoDotGitIgnores := 0
 	for _, c := range allChanges {
-		if c.Kind == IgnoredByOrtoKind {
+		if c.Kind == ChangeKindIgnoredByOrto {
 			ortoIgnores++
 			// TODO: fix this:
 			if c.FsFile != nil && !strings.HasPrefix(c.FsFile.CleanPath, ".git/") {
@@ -126,7 +126,7 @@ func compareFiles(status Inputs) []Change {
 		println("⛔︎ OrtoIgnored", ".git/**")
 	} else {
 		for _, c := range allChanges {
-			if c.Kind == IgnoredByOrtoKind {
+			if c.Kind == ChangeKindIgnoredByOrto {
 				PrintChange(c)
 			}
 		}
@@ -153,26 +153,26 @@ func write(_ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change
 		//fmt.Printf("%#v,%#v\n", change.FsFile, change.Blob)
 		validateChange(change)
 		switch change.Kind {
-		case AddedKind:
+		case ChangeKindAdded:
 			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
 			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
-		case ModifiedKind:
+		case ChangeKindModified:
 			// TODO: copy the old file too
 			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
 			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
-		case DeletedKind:
+		case ChangeKindDeleted:
 			SaveGitBlob(change.Blob.Checksum, change.Blob.CleanPath, output.absDestinationChangeSetDir)
 			jsonOut.maybeAddComma()
 			jsonOut.encode(change.Blob)
 			PrintLogDel(change.Blob.CleanPath)
-		case UnchangedKind:
+		case ChangeKindUnchanged:
 			if copyUnchangedFiles {
 				CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
 				PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
 			}
-		case IgnoredByGitKind:
+		case ChangeKindIgnoredByGit:
 			// TODO
-		case IgnoredByOrtoKind:
+		case ChangeKindIgnoredByOrto:
 			// TODO
 		}
 	}
@@ -184,32 +184,32 @@ func write(_ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change
 
 func validateChange(c Change) {
 	switch c.Kind {
-	case AddedKind:
+	case ChangeKindAdded:
 		// Only FsFile
 		if c.FsFile == nil || c.Blob != nil {
 			panic("Illegal state")
 		}
-	case DeletedKind:
+	case ChangeKindDeleted:
 		// Only blob
 		if c.FsFile != nil || c.Blob == nil {
 			panic("Illegal state")
 		}
-	case UnchangedKind:
+	case ChangeKindUnchanged:
 		// Has both
 		if c.Blob == nil || c.FsFile == nil {
 			panic("Illegal state")
 		}
-	case ModifiedKind:
+	case ChangeKindModified:
 		// Has both
 		if c.FsFile == nil || c.Blob == nil {
 			panic("Illegal state")
 		}
-	case IgnoredByGitKind:
+	case ChangeKindIgnoredByGit:
 		// Only FSFile
 		if c.FsFile == nil || c.Blob != nil {
 			panic("Illegal state")
 		}
-	case IgnoredByOrtoKind:
+	case ChangeKindIgnoredByOrto:
 		// Only FSFile
 		if c.FsFile == nil || c.Blob != nil {
 			panic("Illegal state")
