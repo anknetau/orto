@@ -17,35 +17,35 @@ func assertLine[T any](t *testing.T, expected T, line string) {
 func TestSamples(t *testing.T) {
 	// Fake status lines:
 	assertLine(t, git.ChangedStatusLine{
-		Xy:   ".M",
-		Sub:  "N...",
-		MH:   "100644",
-		MI:   "000000",
-		MW:   "100755",
-		HH:   "21809e0abf6af128398a1687adf8a0fc22d1ca88",
-		HI:   "45b983be36b73c0788dc9cbcb76cbb80fc7bb057",
-		Path: ".idea/dictionaries/project.xml"},
+		Xy:            ".M",
+		Sub:           "N...",
+		ModeHead:      "100644",
+		ModeIndex:     "000000",
+		ModeWorktree:  "100755",
+		ChecksumHead:  "21809e0abf6af128398a1687adf8a0fc22d1ca88",
+		ChecksumIndex: "45b983be36b73c0788dc9cbcb76cbb80fc7bb057",
+		Path:          ".idea/dictionaries/project.xml"},
 		"1 .M N... 100644 000000 100755 21809e0abf6af128398a1687adf8a0fc22d1ca88 45b983be36b73c0788dc9cbcb76cbb80fc7bb057 .idea/dictionaries/project.xml")
 	// Real status lines:
 	assertLine(t, git.ChangedStatusLine{
-		Xy:   ".M",
-		Sub:  "N...",
-		MH:   "100644",
-		MI:   "100644",
-		MW:   "100644",
-		HH:   "21809e0abf6af128398a1687adf8a0fc22d1ca88",
-		HI:   "21809e0abf6af128398a1687adf8a0fc22d1ca88",
-		Path: ".idea/dictionaries/project.xml"},
+		Xy:            ".M",
+		Sub:           "N...",
+		ModeHead:      "100644",
+		ModeIndex:     "100644",
+		ModeWorktree:  "100644",
+		ChecksumHead:  "21809e0abf6af128398a1687adf8a0fc22d1ca88",
+		ChecksumIndex: "21809e0abf6af128398a1687adf8a0fc22d1ca88",
+		Path:          ".idea/dictionaries/project.xml"},
 		"1 .M N... 100644 100644 100644 21809e0abf6af128398a1687adf8a0fc22d1ca88 21809e0abf6af128398a1687adf8a0fc22d1ca88 .idea/dictionaries/project.xml")
 	assertLine(t, git.RenamedOrCopiedStatusLine{Change: git.ChangedStatusLine{
-		Xy:   "R.",
-		Sub:  "N...",
-		MH:   "100644",
-		MI:   "100644",
-		MW:   "100644",
-		HH:   "45b983be36b73c0788dc9cbcb76cbb80fc7bb057",
-		HI:   "45b983be36b73c0788dc9cbcb76cbb80fc7bb057",
-		Path: "deleteme2"}, OrigPath: "deleteme", Score: "R100"},
+		Xy:            "R.",
+		Sub:           "N...",
+		ModeHead:      "100644",
+		ModeIndex:     "100644",
+		ModeWorktree:  "100644",
+		ChecksumHead:  "45b983be36b73c0788dc9cbcb76cbb80fc7bb057",
+		ChecksumIndex: "45b983be36b73c0788dc9cbcb76cbb80fc7bb057",
+		Path:          "deleteme2"}, OrigPath: "deleteme", Score: "R100"},
 		"2 R. N... 100644 100644 100644 45b983be36b73c0788dc9cbcb76cbb80fc7bb057 45b983be36b73c0788dc9cbcb76cbb80fc7bb057 R100 deleteme2\x00deleteme")
 	assertLine(t, git.UntrackedStatusLine{Path: "gitdiff.txt"}, "? gitdiff.txt")
 	assertLine(t, git.IgnoredStatusLine{Path: "gitdiff.txt"}, "! gitdiff.txt")

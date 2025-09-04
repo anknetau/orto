@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"iter"
 	"log"
 	"os/exec"
@@ -16,6 +17,7 @@ import (
 // When the -z option is given, pathnames are printed as is and without any quoting and lines are terminated with a NUL (ASCII 0x00) byte.
 // Without the -z option, pathnames with "unusual" characters are quoted as explained for the configuration variable core.quotePath (see git-config[1]).
 
+//go:generate go run golang.org/x/tools/cmd/stringer -type=StatusLineKind
 type StatusLineKind int
 
 const (
@@ -43,31 +45,52 @@ type CommentStatusLine struct {
 	Comment string
 }
 type ChangedStatusLine struct {
-	Xy   string
-	Sub  string
-	Path string
-	MH   string
-	MI   string
-	MW   string
-	HH   string
-	HI   string
+	Path          string
+	Xy            string
+	Sub           string
+	ModeHead      string
+	ModeIndex     string
+	ModeWorktree  string
+	ChecksumHead  string
+	ChecksumIndex string
 }
 type RenamedOrCopiedStatusLine struct {
-	Change   ChangedStatusLine
 	OrigPath string
 	Score    string
+	Change   ChangedStatusLine
 }
 type UnmergedStatusLine struct {
-	Xy   string
-	Sub  string
-	M1   string
-	M2   string
-	M3   string
-	MW   string
-	H1   string
-	H2   string
-	H3   string
-	Path string
+	Path           string
+	Xy             string
+	Sub            string
+	ModeStage1     string
+	ModeStage2     string
+	ModeStage3     string
+	ModeWorktree   string
+	ChecksumStage1 string
+	ChecksumStage2 string
+	ChecksumStage3 string
+}
+
+func PrintStatusLine(line *StatusLine) {
+	print((*line).Kind().String() + ": ")
+
+	switch v := (*line).(type) {
+	case IgnoredStatusLine:
+		println("Path:" + v.Path)
+	case UntrackedStatusLine:
+		println("Path:" + v.Path)
+	case CommentStatusLine:
+		println("Comment:" + v.Comment)
+	case ChangedStatusLine:
+		fmt.Printf("%+v\n", v)
+	case RenamedOrCopiedStatusLine:
+		fmt.Printf("%+v\n", v)
+	case UnmergedStatusLine:
+		fmt.Printf("%+v\n", v)
+	default:
+		panic(fmt.Sprintf("Unhandled StatusLineKind: %#v", *line))
+	}
 }
 
 func (IgnoredStatusLine) Kind() StatusLineKind         { return IgnoredStatusLineKind }
@@ -81,29 +104,29 @@ func validateChangedStatusLine(changedStatusLine ChangedStatusLine, line string)
 	if changedStatusLine.Sub != "N..." {
 		log.Fatal("Error parsing " + line + " (submodules not supported yet)")
 	}
-	if !IsValidGitMode(changedStatusLine.MH) {
-		log.Fatal("Invalid git mode: " + changedStatusLine.MH + " in line: " + line)
+	if !IsValidGitMode(changedStatusLine.ModeHead) {
+		log.Fatal("Invalid git mode: " + changedStatusLine.ModeHead + " in line: " + line)
 	}
-	if !IsValidGitMode(changedStatusLine.MI) {
-		log.Fatal("Invalid git mode: " + changedStatusLine.MI + " in line: " + line)
+	if !IsValidGitMode(changedStatusLine.ModeIndex) {
+		log.Fatal("Invalid git mode: " + changedStatusLine.ModeIndex + " in line: " + line)
 	}
-	if !IsValidGitMode(changedStatusLine.MW) {
-		log.Fatal("Invalid git mode: " + changedStatusLine.MW + " in line: " + line)
+	if !IsValidGitMode(changedStatusLine.ModeWorktree) {
+		log.Fatal("Invalid git mode: " + changedStatusLine.ModeWorktree + " in line: " + line)
 	}
-	if !IsSupportedGitMode(changedStatusLine.MH) {
-		log.Fatal("Unsupported git mode: " + changedStatusLine.MH + " in line: " + line)
+	if !IsSupportedGitMode(changedStatusLine.ModeHead) {
+		log.Fatal("Unsupported git mode: " + changedStatusLine.ModeHead + " in line: " + line)
 	}
-	if !IsSupportedGitMode(changedStatusLine.MI) {
-		log.Fatal("Unsupported git mode: " + changedStatusLine.MI + " in line: " + line)
+	if !IsSupportedGitMode(changedStatusLine.ModeIndex) {
+		log.Fatal("Unsupported git mode: " + changedStatusLine.ModeIndex + " in line: " + line)
 	}
-	if !IsSupportedGitMode(changedStatusLine.MW) {
-		log.Fatal("Unsupported git mode: " + changedStatusLine.MW + " in line: " + line)
+	if !IsSupportedGitMode(changedStatusLine.ModeWorktree) {
+		log.Fatal("Unsupported git mode: " + changedStatusLine.ModeWorktree + " in line: " + line)
 	}
-	if fp.ChecksumGetAlgo(changedStatusLine.HH) == fp.UNKNOWN {
-		log.Fatal("Unknown checksum algorithm: " + changedStatusLine.HH + " in line: " + line)
+	if fp.ChecksumGetAlgo(changedStatusLine.ChecksumHead) == fp.UNKNOWN {
+		log.Fatal("Unknown checksum algorithm: " + changedStatusLine.ChecksumHead + " in line: " + line)
 	}
-	if fp.ChecksumGetAlgo(changedStatusLine.HI) == fp.UNKNOWN {
-		log.Fatal("Unknown checksum algorithm: " + changedStatusLine.HI + " in line: " + line)
+	if fp.ChecksumGetAlgo(changedStatusLine.ChecksumIndex) == fp.UNKNOWN {
+		log.Fatal("Unknown checksum algorithm: " + changedStatusLine.ChecksumIndex + " in line: " + line)
 	}
 	fp.ValidFilePathForOrtoOrDie(changedStatusLine.Path)
 }
@@ -288,16 +311,16 @@ func ParseLine(line string) StatusLine {
 			log.Fatal("Error parsing " + line)
 		}
 		unmergedStatusLine := UnmergedStatusLine{
-			Xy:   matches[1],
-			Sub:  matches[2],
-			M1:   matches[3],
-			M2:   matches[4],
-			M3:   matches[5],
-			MW:   matches[6],
-			H1:   matches[7],
-			H2:   matches[8],
-			H3:   matches[9],
-			Path: matches[10],
+			Xy:             matches[1],
+			Sub:            matches[2],
+			ModeStage1:     matches[3],
+			ModeStage2:     matches[4],
+			ModeStage3:     matches[5],
+			ModeWorktree:   matches[6],
+			ChecksumStage1: matches[7],
+			ChecksumStage2: matches[8],
+			ChecksumStage3: matches[9],
+			Path:           matches[10],
 		}
 		fp.ValidFilePathForOrtoOrDie(unmergedStatusLine.Path)
 		return unmergedStatusLine
@@ -311,13 +334,13 @@ func ParseLine(line string) StatusLine {
 		}
 
 		changedStatusLine := ChangedStatusLine{Xy: matches[1],
-			Sub:  matches[2],
-			MH:   matches[3],
-			MI:   matches[4],
-			MW:   matches[5],
-			HH:   matches[6],
-			HI:   matches[7],
-			Path: matches[8]}
+			Sub:           matches[2],
+			ModeHead:      matches[3],
+			ModeIndex:     matches[4],
+			ModeWorktree:  matches[5],
+			ChecksumHead:  matches[6],
+			ChecksumIndex: matches[7],
+			Path:          matches[8]}
 		validateChangedStatusLine(changedStatusLine, line)
 		//log.Printf("%#v\n", changedStatusLine)
 		return changedStatusLine
@@ -326,14 +349,14 @@ func ParseLine(line string) StatusLine {
 		// 2 R. N... 100644 100644 100644 37ee65c344d8ab16aebbed88699b77f3a0f2ee7f 37ee65c344d8ab16aebbed88699b77f3a0f2ee7f R100 git/blob.go   git/gitfile.go
 		matches := re2.FindStringSubmatch(line)
 		changedStatusLine := ChangedStatusLine{
-			Xy:   matches[1],
-			Sub:  matches[2],
-			MH:   matches[3],
-			MI:   matches[4],
-			MW:   matches[5],
-			HH:   matches[6],
-			HI:   matches[7],
-			Path: matches[9]}
+			Xy:            matches[1],
+			Sub:           matches[2],
+			ModeHead:      matches[3],
+			ModeIndex:     matches[4],
+			ModeWorktree:  matches[5],
+			ChecksumHead:  matches[6],
+			ChecksumIndex: matches[7],
+			Path:          matches[9]}
 		validateChangedStatusLine(changedStatusLine, line)
 		renamedOrCopiedStatusLine := RenamedOrCopiedStatusLine{Score: matches[8], OrigPath: matches[10], Change: changedStatusLine}
 		if matches == nil {

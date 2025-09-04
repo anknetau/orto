@@ -59,6 +59,7 @@ func gatherFiles(absSourceDir string) Inputs {
 	})
 
 	var gitIgnoredFiles = Filter(inputs.gitStatus, func(statusLine *git.StatusLine) *string {
+		git.PrintStatusLine(statusLine)
 		if val, ok := (*statusLine).(git.IgnoredStatusLine); ok {
 			return &val.Path
 		}
@@ -135,6 +136,7 @@ func compareFiles(status Inputs) []Change {
 }
 
 func write(_ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change) {
+	return
 	PrintLogHeader("Writing output...")
 
 	// TODO: do this properly:

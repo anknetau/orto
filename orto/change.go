@@ -2,6 +2,7 @@ package orto
 
 import "github.com/anknetau/orto/git"
 
+//go:generate go run golang.org/x/tools/cmd/stringer -type=ChangeKind
 type ChangeKind int
 
 const (
@@ -12,8 +13,6 @@ const (
 	IgnoredByGitKind
 	IgnoredByOrtoKind
 )
-
-//go:generate stringer -type=ChangeKind
 
 type Change struct {
 	Kind   ChangeKind
