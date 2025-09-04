@@ -43,7 +43,7 @@ func copyContents(src *os.File, dest *os.File) int64 {
 	return n
 }
 
-func SaveGitBlob(checksum string, path string, destAbsoluteDirectory string) {
+func SaveGitBlob(checksum fp.Checksum, path string, destAbsoluteDirectory string) {
 	fp.CreateIntermediateDirectoriesForFile(path, destAbsoluteDirectory)
 
 	content := git.RunGetRawContent(checksum)
@@ -179,7 +179,7 @@ func ComparePair(blob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string
 		if stat.IsDir() {
 			panic("was dir: " + fsFile.Path)
 		}
-		calculatedChecksum := fp.ChecksumBlob(blob.Path, fp.ChecksumGetAlgo(blob.Checksum))
+		calculatedChecksum := fp.ChecksumBlob(blob.Path, blob.Checksum.GetAlgo())
 		if calculatedChecksum == blob.Checksum {
 			return Change{Kind: ChangeKindUnchanged, FsFile: fsFile, Blob: blob}
 		} else {

@@ -48,11 +48,11 @@ type ChangedStatusLine struct {
 	Path          string
 	Xy            string
 	Sub           string
-	ModeHead      string
-	ModeIndex     string
-	ModeWorktree  string
-	ChecksumHead  string
-	ChecksumIndex string
+	ModeHead      Mode
+	ModeIndex     Mode
+	ModeWorktree  Mode
+	ChecksumHead  fp.Checksum
+	ChecksumIndex fp.Checksum
 }
 type RenamedOrCopiedStatusLine struct {
 	OrigPath string
@@ -63,13 +63,13 @@ type UnmergedStatusLine struct {
 	Path           string
 	Xy             string
 	Sub            string
-	ModeStage1     string
-	ModeStage2     string
-	ModeStage3     string
-	ModeWorktree   string
-	ChecksumStage1 string
-	ChecksumStage2 string
-	ChecksumStage3 string
+	ModeStage1     Mode
+	ModeStage2     Mode
+	ModeStage3     Mode
+	ModeWorktree   Mode
+	ChecksumStage1 fp.Checksum
+	ChecksumStage2 fp.Checksum
+	ChecksumStage3 fp.Checksum
 }
 
 func PrintStatusLine(line *StatusLine) {
@@ -103,30 +103,6 @@ func (UnmergedStatusLine) Kind() StatusLineKind        { return StatusLineKindUn
 func validateChangedStatusLine(changedStatusLine ChangedStatusLine, line string) {
 	if changedStatusLine.Sub != "N..." {
 		log.Fatal("Error parsing " + line + " (submodules not supported yet)")
-	}
-	if !IsValidGitMode(changedStatusLine.ModeHead) {
-		log.Fatal("Invalid git mode: " + changedStatusLine.ModeHead + " in line: " + line)
-	}
-	if !IsValidGitMode(changedStatusLine.ModeIndex) {
-		log.Fatal("Invalid git mode: " + changedStatusLine.ModeIndex + " in line: " + line)
-	}
-	if !IsValidGitMode(changedStatusLine.ModeWorktree) {
-		log.Fatal("Invalid git mode: " + changedStatusLine.ModeWorktree + " in line: " + line)
-	}
-	if !IsSupportedGitMode(changedStatusLine.ModeHead) {
-		log.Fatal("Unsupported git mode: " + changedStatusLine.ModeHead + " in line: " + line)
-	}
-	if !IsSupportedGitMode(changedStatusLine.ModeIndex) {
-		log.Fatal("Unsupported git mode: " + changedStatusLine.ModeIndex + " in line: " + line)
-	}
-	if !IsSupportedGitMode(changedStatusLine.ModeWorktree) {
-		log.Fatal("Unsupported git mode: " + changedStatusLine.ModeWorktree + " in line: " + line)
-	}
-	if fp.ChecksumGetAlgo(changedStatusLine.ChecksumHead) == fp.UNKNOWN {
-		log.Fatal("Unknown checksum algorithm: " + changedStatusLine.ChecksumHead + " in line: " + line)
-	}
-	if fp.ChecksumGetAlgo(changedStatusLine.ChecksumIndex) == fp.UNKNOWN {
-		log.Fatal("Unknown checksum algorithm: " + changedStatusLine.ChecksumIndex + " in line: " + line)
 	}
 	fp.ValidFilePathForOrtoOrDie(changedStatusLine.Path)
 }
@@ -313,13 +289,13 @@ func ParseLine(line string) StatusLine {
 		unmergedStatusLine := UnmergedStatusLine{
 			Xy:             matches[1],
 			Sub:            matches[2],
-			ModeStage1:     matches[3],
-			ModeStage2:     matches[4],
-			ModeStage3:     matches[5],
-			ModeWorktree:   matches[6],
-			ChecksumStage1: matches[7],
-			ChecksumStage2: matches[8],
-			ChecksumStage3: matches[9],
+			ModeStage1:     NewMode(matches[3]),
+			ModeStage2:     NewMode(matches[4]),
+			ModeStage3:     NewMode(matches[5]),
+			ModeWorktree:   NewMode(matches[6]),
+			ChecksumStage1: fp.NewChecksum(matches[7]),
+			ChecksumStage2: fp.NewChecksum(matches[8]),
+			ChecksumStage3: fp.NewChecksum(matches[9]),
 			Path:           matches[10],
 		}
 		fp.ValidFilePathForOrtoOrDie(unmergedStatusLine.Path)
@@ -335,11 +311,11 @@ func ParseLine(line string) StatusLine {
 
 		changedStatusLine := ChangedStatusLine{Xy: matches[1],
 			Sub:           matches[2],
-			ModeHead:      matches[3],
-			ModeIndex:     matches[4],
-			ModeWorktree:  matches[5],
-			ChecksumHead:  matches[6],
-			ChecksumIndex: matches[7],
+			ModeHead:      NewMode(matches[3]),
+			ModeIndex:     NewMode(matches[4]),
+			ModeWorktree:  NewMode(matches[5]),
+			ChecksumHead:  fp.NewChecksum(matches[6]),
+			ChecksumIndex: fp.NewChecksum(matches[7]),
 			Path:          matches[8]}
 		validateChangedStatusLine(changedStatusLine, line)
 		//log.Printf("%#v\n", changedStatusLine)
@@ -351,11 +327,11 @@ func ParseLine(line string) StatusLine {
 		changedStatusLine := ChangedStatusLine{
 			Xy:            matches[1],
 			Sub:           matches[2],
-			ModeHead:      matches[3],
-			ModeIndex:     matches[4],
-			ModeWorktree:  matches[5],
-			ChecksumHead:  matches[6],
-			ChecksumIndex: matches[7],
+			ModeHead:      NewMode(matches[3]),
+			ModeIndex:     NewMode(matches[4]),
+			ModeWorktree:  NewMode(matches[5]),
+			ChecksumHead:  fp.NewChecksum(matches[6]),
+			ChecksumIndex: fp.NewChecksum(matches[7]),
 			Path:          matches[9]}
 		validateChangedStatusLine(changedStatusLine, line)
 		renamedOrCopiedStatusLine := RenamedOrCopiedStatusLine{Score: matches[8], OrigPath: matches[10], Change: changedStatusLine}

@@ -11,11 +11,21 @@ import (
 type Blob struct {
 	CleanPath string
 	Path      string
-	Checksum  string
+	Checksum  fp.Checksum
 	Mode      Mode
 }
 
 type Mode string
+
+func NewMode(mode string) Mode {
+	if !IsValidGitMode(mode) {
+		log.Fatal("Invalid git mode: " + mode)
+	}
+	if !IsSupportedGitMode(mode) {
+		log.Fatal("Unsupported git mode: " + mode)
+	}
+	return Mode(mode)
+}
 
 const (
 	Deleted    Mode = "000000"
@@ -37,22 +47,12 @@ func IsSupportedGitMode(mode string) bool {
 	return m == File || m == Executable || m == Deleted
 }
 
-func NewGitFile(objectType, path, checksum, mode string) Blob {
+func NewGitFile(objectType string, path string, checksum fp.Checksum, mode Mode) Blob {
 	Filepath := filepath.Clean(path)
-	if !IsValidGitMode(mode) {
-		log.Fatal("Invalid git mode: " + mode)
-	}
-	if !IsSupportedGitMode(mode) {
-		log.Fatal("Unsupported git mode: " + mode + " for " + path)
-	}
 	// When `git ls-tree` is passed -r, it will recurse and not show trees, but resolve the blobs within instead.
 	if objectType != "blob" {
 		log.Fatal("Submodules are not supported: " + objectType)
 	}
 	fp.ValidFilePathForOrtoOrDie(Filepath)
-	gitFile := Blob{Filepath, path, checksum, Mode(mode)}
-	if fp.ChecksumGetAlgo(gitFile.Checksum) == fp.UNKNOWN {
-		log.Fatal("Don't know how this was hashed: " + checksum)
-	}
-	return gitFile
+	return Blob{Filepath, path, checksum, mode}
 }

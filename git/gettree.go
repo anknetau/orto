@@ -4,6 +4,8 @@ import (
 	"log"
 	"os/exec"
 	"strings"
+
+	"github.com/anknetau/orto/fp"
 )
 
 func RunGetTreeForHead() []Blob {
@@ -31,7 +33,7 @@ func gitFileFromLine(line string) Blob {
 	}
 	objectType := fields[0]
 	path := fields[2]
-	checksum := fields[1]
-	mode := fields[3]
+	checksum := fp.NewChecksum(fields[1])
+	mode := NewMode(fields[3])
 	return NewGitFile(objectType, path, checksum, mode)
 }

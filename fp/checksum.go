@@ -20,7 +20,16 @@ const (
 	UNKNOWN = ""
 )
 
-func ChecksumBlob(path string, algo string) string {
+type Checksum string
+
+func NewChecksum(checksum string) Checksum {
+	if ChecksumGetAlgo(checksum) == UNKNOWN {
+		panic("Unknown checksum size")
+	}
+	return Checksum(checksum)
+}
+
+func ChecksumBlob(path string, algo string) Checksum {
 	// TODO: os.Stat follows symlinks apparently
 	s, err := os.Stat(path)
 	if err != nil {
@@ -40,7 +49,7 @@ func ChecksumBlob(path string, algo string) string {
 	if _, err := io.Copy(hashAlgo, fileToRead); err != nil {
 		log.Fatal(err)
 	}
-	return hex.EncodeToString(hashAlgo.Sum(nil))
+	return Checksum(hex.EncodeToString(hashAlgo.Sum(nil)))
 }
 
 func checksumGoHash(algo string) hash.Hash {
@@ -61,4 +70,8 @@ func ChecksumGetAlgo(checksum string) string {
 	} else {
 		return UNKNOWN
 	}
+}
+
+func (c Checksum) GetAlgo() string {
+	return ChecksumGetAlgo(string(c))
 }

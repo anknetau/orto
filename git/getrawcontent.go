@@ -3,11 +3,13 @@ package git
 import (
 	"log"
 	"os/exec"
+
+	"github.com/anknetau/orto/fp"
 )
 
-func RunGetRawContent(checksum string) []byte {
+func RunGetRawContent(checksum fp.Checksum) []byte {
 	// TODO: stream this rather than load it all into memory
-	cmd := exec.Command("git", "cat-file", "blob", checksum)
+	cmd := exec.Command("git", "cat-file", "blob", string(checksum))
 	out, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)
