@@ -63,6 +63,23 @@ func TestSamples(t *testing.T) {
 	//? diff2.txt
 	//? gitdiff.txt
 	//! .idea/workspace.xml
+
+	// More real examples:
+	//StatusLineKindComment: Comment: branch.oid 581953ffc6256bd3a33d3d459e592f30949ff6c9
+	//StatusLineKindComment: Comment: branch.head master
+	//StatusLineKindComment: Comment: branch.upstream origin/master
+	//StatusLineKindComment: Comment: branch.ab +0 -0
+	//StatusLineKindChanged: {Path:assets/orto-git.png Status:.D Sub:N... ModeHead:100644 ModeIndex:100644 ModeWorktree:000000 ChecksumHead:2abf629e87264b60acb577dc7efebdd618b2bfa4 ChecksumIndex:2abf629e87264b60acb577dc7efebdd618b2bfa4}
+	//StatusLineKindChanged: {Path:deleteme Status:.D Sub:N... ModeHead:100644 ModeIndex:100644 ModeWorktree:000000 ChecksumHead:45b983be36b73c0788dc9cbcb76cbb80fc7bb057 ChecksumIndex:45b983be36b73c0788dc9cbcb76cbb80fc7bb057}
+	//StatusLineKindChanged: {Path:fp/fp.go Status:.M Sub:N... ModeHead:100644 ModeIndex:100644 ModeWorktree:100644 ChecksumHead:6474594b176af87916439279160a1f26964d00ec ChecksumIndex:6474594b176af87916439279160a1f26964d00ec}
+	//StatusLineKindChanged: {Path:git/version.go Status:A. Sub:N... ModeHead:000000 ModeIndex:100644 ModeWorktree:100644 ChecksumHead:0000000000000000000000000000000000000000 ChecksumIndex:4607879d88f1d95671d9664bf6dde92ed23d43ea}
+	//StatusLineKindChanged: {Path:orto/main.go Status:M. Sub:N... ModeHead:100644 ModeIndex:100644 ModeWorktree:100644 ChecksumHead:4456164e5e61db3dc1f201421c53284366af6529 ChecksumIndex:9e93db03222710334023edf0cbd1527e62667eca}
+	//StatusLineKindChanged: {Path:orto/params.go Status:M. Sub:N... ModeHead:100644 ModeIndex:100644 ModeWorktree:100644 ChecksumHead:ba9d176ee5149d3a4879ed6ac19aadcaf29fe903 ChecksumIndex:1d12c1aa8a718dd74dceb352e3b07b4375b7eb57}
+	//StatusLineKindUntracked: Path:deleteme2
+	//StatusLineKindUntracked: Path:diff.txt
+	//StatusLineKindUntracked: Path:diff2.txt
+	//StatusLineKindUntracked: Path:gitdiff.txt
+	//StatusLineKindIgnored: Path:.idea/workspace.xml
 }
 
 func TestComments(t *testing.T) {
