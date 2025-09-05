@@ -13,19 +13,18 @@ import (
 // TODO: symlinks appear as blobs but with a different mode. also check symlinks on the filesystem.
 // TODO: empty dirs?
 // TODO: how do we know if a file is the same file? inodes, etc?
-// TODO: case change
+// TODO: figure out if there's been a case change, think about what that can do.
 // TODO: test in windows and linux
 
-// TODO: rename "Inputs"
-type Inputs struct {
+type Catalog struct {
 	fsFiles              []FSFile
 	gitBlobs             []git.Blob
+	gitStatus            []git.StatusLine
+	gitSubmodules        []git.Submodule
 	fsFileIndex          map[string]FSFile
 	gitBlobIndex         map[string]git.Blob
-	gitStatus            []git.StatusLine
 	gitIgnoredFilesIndex map[string]string
 	envConfig            fp.EnvConfig
-	gitSubmodules        []git.Submodule
 }
 
 type Settings struct {
@@ -44,14 +43,14 @@ type OutputSettings struct {
 	copyUnchangedFiles              bool
 }
 
-func Start(params UserParameters) {
+func Run(params UserParameters) {
 	settings := checkAndUpdateUserParameters(&params)
-	inputs := read(settings.input, settings.envConfig)
-	changes := compare(inputs)
+	catalog := find(settings.input, settings.envConfig)
+	changes := diff(catalog)
 	write(settings.envConfig, settings.output, changes)
 }
 
-func read(inputSettings InputSettings, envConfig fp.EnvConfig) Inputs {
+func find(inputSettings InputSettings, envConfig fp.EnvConfig) Catalog {
 	absSourceDir := inputSettings.absSourceDir
 	PrintLogHeader("Found git version " + envConfig.GitVersion)
 	if !filepath.IsAbs(absSourceDir) {
@@ -63,7 +62,7 @@ func read(inputSettings InputSettings, envConfig fp.EnvConfig) Inputs {
 		log.Fatal(err)
 	}
 	gitBlobs, gitSubmodules := git.RunGetTreeForHead(envConfig)
-	inputs := Inputs{
+	inputs := Catalog{
 		fsFiles:       FsReadDir(absSourceDir),
 		gitBlobs:      gitBlobs,
 		gitStatus:     git.RunStatus(envConfig),
@@ -87,9 +86,9 @@ func read(inputSettings InputSettings, envConfig fp.EnvConfig) Inputs {
 	return inputs
 }
 
-func compare(status Inputs) []Change {
+func diff(catalog Catalog) []Change {
 	PrintLogHeader("Comparing...")
-	common, left, right := CompareFiles(status.fsFiles, status.gitBlobs, status.fsFileIndex, status.gitBlobIndex)
+	common, left, right := CompareFiles(catalog.fsFiles, catalog.gitBlobs, catalog.fsFileIndex, catalog.gitBlobIndex)
 
 	// TODO: is this happening or not?
 	// Filter out ignored
@@ -102,15 +101,15 @@ func compare(status Inputs) []Change {
 
 	var changes []Change
 	for _, f := range left {
-		change := ComparePair(nil, &f, status.gitIgnoredFilesIndex)
+		change := ComparePair(nil, &f, catalog.gitIgnoredFilesIndex)
 		changes = append(changes, change)
 	}
 	for _, f := range right {
-		change := ComparePair(&f, nil, status.gitIgnoredFilesIndex)
+		change := ComparePair(&f, nil, catalog.gitIgnoredFilesIndex)
 		changes = append(changes, change)
 	}
 	for _, c := range common {
-		change := ComparePair(&c.GitBlob, &c.FsFile, status.gitIgnoredFilesIndex)
+		change := ComparePair(&c.GitBlob, &c.FsFile, catalog.gitIgnoredFilesIndex)
 		changes = append(changes, change)
 	}
 
@@ -133,6 +132,7 @@ func compare(status Inputs) []Change {
 	ortoIgnores := 0
 	ortoDotGitIgnores := 0
 	for _, c := range changes {
+		validateChange(c)
 		if c.Kind == ChangeKindIgnoredByOrto {
 			ortoIgnores++
 			// TODO: fix this:
@@ -169,7 +169,6 @@ func write(envConfig fp.EnvConfig, outputSettings OutputSettings, changes []Chan
 
 	for _, change := range changes {
 		//fmt.Printf("%#v,%#v\n", change.FsFile, change.GitBlob)
-		validateChange(change)
 		switch change.Kind {
 		case ChangeKindAdded:
 			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, outputSettings.absDestinationChangeSetDir)

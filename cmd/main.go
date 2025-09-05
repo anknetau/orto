@@ -50,7 +50,7 @@ func jsonOutputTest() {
 }
 
 func main() {
-	orto.Start(orto.UserParameters{
+	orto.Run(orto.UserParameters{
 		// "/Users/ank/dev/accounting/accounting"
 		// "/Users/ank/dev/mirrors"
 		Source:              "/Users/ank/dev/3rd/aseprite",
