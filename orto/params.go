@@ -16,9 +16,10 @@ type UserParameters struct {
 	Destination         string
 	ChangeSetName       string
 	GitCommand          string
-	CopyDotGit          bool // TODO
+	CopyDotGit          bool
 	CopyGitIgnoredFiles bool // TODO
 	CopyUnchangedFiles  bool
+	// TODO: CopyContentsOfSubmodules?
 }
 
 func setDefaultStringIfEmpty(key *string, def string) {
@@ -71,6 +72,7 @@ func checkAndUpdateUserParameters(params *UserParameters) Settings {
 	return Settings{
 		input: InputSettings{
 			absSourceDir: absSourceDir,
+			copyDotGit:   params.CopyDotGit,
 		},
 		output: OutputSettings{
 			absDestinationDir:               absDestinationDir,

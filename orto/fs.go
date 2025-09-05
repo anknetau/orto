@@ -34,10 +34,6 @@ func FsReadDir(root string) []FSFile {
 			panic(relPath)
 		}
 		if dirEntry.IsDir() {
-			// TODO: this ignores .git
-			if dirEntry.Name() == ".git" && relPath == ".git" {
-				return filepath.SkipDir
-			}
 			return nil
 		}
 		// TODO: add filepath.IsLocal() where needed, for security

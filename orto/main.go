@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/anknetau/orto/fp"
 	"github.com/anknetau/orto/git"
@@ -15,6 +14,10 @@ import (
 // TODO: how do we know if a file is the same file? inodes, etc?
 // TODO: figure out if there's been a case change, think about what that can do.
 // TODO: test in windows and linux
+// TODO: process and include staged (index) changes
+// TODO: save diffs - small and large, perhaps even in a single file
+// TODO: save where the branch is, etc
+// TODO: command line options
 
 type Catalog struct {
 	fsFiles              []FSFile
@@ -34,6 +37,7 @@ type Settings struct {
 }
 type InputSettings struct {
 	absSourceDir string
+	copyDotGit   bool
 }
 
 type OutputSettings struct {
@@ -46,7 +50,7 @@ type OutputSettings struct {
 func Run(params UserParameters) {
 	settings := checkAndUpdateUserParameters(&params)
 	catalog := find(settings.input, settings.envConfig)
-	changes := diff(catalog)
+	changes := diff(catalog, settings.input)
 	write(settings.envConfig, settings.output, changes)
 }
 
@@ -86,30 +90,30 @@ func find(inputSettings InputSettings, envConfig fp.EnvConfig) Catalog {
 	return inputs
 }
 
-func diff(catalog Catalog) []Change {
+func diff(catalog Catalog, inputSettings InputSettings) []Change {
 	PrintLogHeader("Comparing...")
-	common, left, right := CompareFiles(catalog.fsFiles, catalog.gitBlobs, catalog.fsFileIndex, catalog.gitBlobIndex)
+	common, fsFiles, gitBlobs := CompareFiles(catalog.gitBlobs, catalog.fsFiles, catalog.fsFileIndex, catalog.gitBlobIndex)
 
 	// TODO: is this happening or not?
 	// Filter out ignored
 	//var aLeft []FSFile
-	//for _, f := range left {
-	//	if _, found := gitIgnoredFilesIndex[f.filepath]; !found {
-	//		aLeft = append(aLeft, f)
+	//for _, fsFile := range fsFiles {
+	//	if _, found := gitIgnoredFilesIndex[fsFile.filepath]; !found {
+	//		aLeft = append(aLeft, fsFile)
 	//	}
 	//}
 
 	var changes []Change
-	for _, f := range left {
-		change := ComparePair(nil, &f, catalog.gitIgnoredFilesIndex)
+	for _, fsFile := range fsFiles {
+		change := ComparePair(nil, &fsFile, catalog.gitIgnoredFilesIndex, inputSettings)
 		changes = append(changes, change)
 	}
-	for _, f := range right {
-		change := ComparePair(&f, nil, catalog.gitIgnoredFilesIndex)
+	for _, blob := range gitBlobs {
+		change := ComparePair(&blob, nil, catalog.gitIgnoredFilesIndex, inputSettings)
 		changes = append(changes, change)
 	}
-	for _, c := range common {
-		change := ComparePair(&c.GitBlob, &c.FsFile, catalog.gitIgnoredFilesIndex)
+	for _, gitBlobAndFile := range common {
+		change := ComparePair(&gitBlobAndFile.GitBlob, &gitBlobAndFile.FsFile, catalog.gitIgnoredFilesIndex, inputSettings)
 		changes = append(changes, change)
 	}
 
@@ -129,25 +133,25 @@ func diff(catalog Catalog) []Change {
 		}
 	}
 
-	ortoIgnores := 0
 	ortoDotGitIgnores := 0
 	for _, c := range changes {
 		validateChange(c)
+		// TODO: should ignored files by orto refer just to FsFiles? can i not ignore files in git?
+		// or am i ignoring changes?
 		if c.Kind == ChangeKindIgnoredByOrto {
-			ortoIgnores++
-			// TODO: fix this:
-			if c.FsFile != nil && !strings.HasPrefix(c.FsFile.CleanPath, ".git/") {
+			// TODO: this is repeated:
+			splitParts := fp.SplitFilePath(c.FsFile.CleanPath)
+			if len(splitParts) > 0 && splitParts[0] == ".git" {
 				ortoDotGitIgnores++
 			}
 		}
 	}
-	if ortoIgnores == ortoDotGitIgnores && ortoIgnores > 0 {
+	if ortoDotGitIgnores > 0 && !inputSettings.copyDotGit {
 		println("⛔︎ OrtoIgnored", ".git/**")
-	} else {
-		for _, c := range changes {
-			if c.Kind == ChangeKindIgnoredByOrto {
-				PrintChange(c)
-			}
+	}
+	for _, c := range changes {
+		if c.Kind == ChangeKindIgnoredByOrto {
+			PrintChange(c)
 		}
 	}
 

@@ -10,8 +10,7 @@ import (
 	"github.com/anknetau/orto/git"
 )
 
-// TODO: rename this:
-type Both struct {
+type GitBlobAndFile struct {
 	FsFile  FSFile
 	GitBlob git.Blob
 }
@@ -112,31 +111,34 @@ func PrintChange(change Change) {
 	}
 }
 
-func CompareFiles(fsFiles []FSFile, gitBlobs []git.Blob, fsFileIndex map[string]FSFile, gitBlobIndex map[string]git.Blob) ([]Both, []FSFile, []git.Blob) {
-	var common []Both
-	var left []FSFile
-	var right []git.Blob
+func CompareFiles(gitBlobs []git.Blob, fsFiles []FSFile, fsFileIndex map[string]FSFile, gitBlobIndex map[string]git.Blob) ([]GitBlobAndFile, []FSFile, []git.Blob) {
+	var common []GitBlobAndFile
+	var resultFsFiles []FSFile
+	var resultGitBlobs []git.Blob
 	for _, fsFile := range fsFiles {
 		gitBlob, ok := gitBlobIndex[fsFile.CleanPath]
 		if ok {
-			common = append(common, Both{FsFile: fsFile, GitBlob: gitBlob})
+			common = append(common, GitBlobAndFile{FsFile: fsFile, GitBlob: gitBlob})
 		} else {
-			left = append(left, fsFile)
+			resultFsFiles = append(resultFsFiles, fsFile)
 		}
 	}
 
 	for _, gitBlob := range gitBlobs {
 		_, ok := fsFileIndex[gitBlob.CleanPath]
 		if !ok {
-			right = append(right, gitBlob)
+			resultGitBlobs = append(resultGitBlobs, gitBlob)
 		}
 	}
-	return common, left, right
+	return common, resultFsFiles, resultGitBlobs
 }
 
-func isOrtoIgnored(fsFile *FSFile) bool {
-	splitParts := fp.SplitFilePath(fp.CleanFilePath(fsFile.CleanPath))
-	if len(splitParts) > 0 && splitParts[0] == ".git" {
+func isOrtoIgnored(fsFile *FSFile, inputSettings InputSettings) bool {
+	splitParts := fp.SplitFilePath(fsFile.CleanPath)
+	if !inputSettings.copyDotGit && len(splitParts) > 0 && splitParts[0] == ".git" {
+		return true
+	}
+	if len(splitParts) > 0 && splitParts[0] == "third_party" || splitParts[0] == "laf" {
 		return true
 	}
 
@@ -155,9 +157,9 @@ func isOrtoIgnored(fsFile *FSFile) bool {
 	return false
 }
 
-func ComparePair(gitBlob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string) Change {
+func ComparePair(gitBlob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, inputSettings InputSettings) Change {
 	if fsFile != nil {
-		if isOrtoIgnored(fsFile) {
+		if isOrtoIgnored(fsFile, inputSettings) {
 			return Change{Kind: ChangeKindIgnoredByOrto, FsFile: fsFile}
 		}
 		if _, ignored := gitIgnoredFilesIndex[fsFile.CleanPath]; ignored {
