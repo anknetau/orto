@@ -69,7 +69,10 @@ func TestSamples(t *testing.T) {
 	//StatusLineKindComment: Comment: branch.head master
 	//StatusLineKindComment: Comment: branch.upstream origin/master
 	//StatusLineKindComment: Comment: branch.ab +0 -0
-	//StatusLineKindChanged: {Path:assets/orto-git.png Status:.D Sub:N... ModeHead:100644 ModeIndex:100644 ModeWorktree:000000 ChecksumHead:2abf629e87264b60acb577dc7efebdd618b2bfa4 ChecksumIndex:2abf629e87264b60acb577dc7efebdd618b2bfa4}
+	// Deleted from worktree:
+	// StatusLineKindChanged: {Path:assets/orto-git.png Status:.D Sub:N... ModeHead:100644 ModeIndex:100644 ModeWorktree:000000 ChecksumHead:2abf629e87264b60acb577dc7efebdd618b2bfa4 ChecksumIndex:2abf629e87264b60acb577dc7efebdd618b2bfa4}
+	// Deleted from index:
+	// StatusLineKindChanged: {Path:deleteme Status:D. Sub:N... ModeHead:100644 ModeIndex:000000 ModeWorktree:000000 ChecksumHead:45b983be36b73c0788dc9cbcb76cbb80fc7bb057 ChecksumIndex:0000000000000000000000000000000000000000}
 	//StatusLineKindChanged: {Path:deleteme Status:.D Sub:N... ModeHead:100644 ModeIndex:100644 ModeWorktree:000000 ChecksumHead:45b983be36b73c0788dc9cbcb76cbb80fc7bb057 ChecksumIndex:45b983be36b73c0788dc9cbcb76cbb80fc7bb057}
 	//StatusLineKindChanged: {Path:fp/fp.go Status:.M Sub:N... ModeHead:100644 ModeIndex:100644 ModeWorktree:100644 ChecksumHead:6474594b176af87916439279160a1f26964d00ec ChecksumIndex:6474594b176af87916439279160a1f26964d00ec}
 	//StatusLineKindChanged: {Path:git/version.go Status:A. Sub:N... ModeHead:000000 ModeIndex:100644 ModeWorktree:100644 ChecksumHead:0000000000000000000000000000000000000000 ChecksumIndex:4607879d88f1d95671d9664bf6dde92ed23d43ea}
