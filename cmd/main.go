@@ -50,17 +50,17 @@ func jsonOutputTest() {
 }
 
 func main() {
-	orto.Start(orto.Parameters{
+	orto.Start(orto.UserParameters{
 		// "/Users/ank/dev/accounting/accounting"
 		// "/Users/ank/dev/mirrors"
-		Source:        "/Users/ank/dev/orto/orto",
+		Source:        "/Users/ank/dev/3rd/aseprite",
 		Destination:   "/Users/ank/dev/orto/orto/../dest/.",
 		ChangeSetName: "2025-01-01-my-thing",
 		//CopyDotGit:          false,
 		//CopyGitIgnoredFiles: false,
 		//CopyUnchangedFiles:  false,
 		Inclusions: orto.Inclusions{
-			UnchangedFiles: true,
+			UnchangedFiles: false,
 		},
 	})
 }

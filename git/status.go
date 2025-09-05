@@ -231,7 +231,7 @@ func RunStatus(config fp.EnvConfig) []StatusLine {
 
 func ParseLines(output string) []StatusLine {
 	var result []StatusLine
-	lines := strings.SplitSeq(strings.TrimRight(string(output), "\x00"), "\x00")
+	lines := strings.SplitSeq(strings.TrimRight(output, "\x00"), "\x00")
 	for line := range JoinInputWhenNeededIter(lines) {
 		result = append(result, ParseLine(line))
 	}

@@ -16,8 +16,8 @@ type Inclusions struct {
 	UnchangedFiles  bool // TODO
 }
 
-// Parameters TODO: make it clear these are parameters sent by the user
-type Parameters struct {
+// UserParameters are parameters set by the user
+type UserParameters struct {
 	Source        string
 	Destination   string
 	ChangeSetName string
@@ -31,8 +31,8 @@ func setDefaultStringIfEmpty(key *string, def string) {
 	}
 }
 
-func (p *Parameters) ApplyDefaults() {
-	setDefaultStringIfEmpty(&p.GitCommand, "git")
+func (params *UserParameters) ApplyDefaults() {
+	setDefaultStringIfEmpty(&params.GitCommand, "git")
 }
 
 func findGitVersion(gitCommand string) string {
@@ -43,7 +43,7 @@ func findGitVersion(gitCommand string) string {
 	return *gitVersion
 }
 
-func checkAndUpdateParameters(params *Parameters) (Input, Output) {
+func checkAndUpdateUserParameters(params *UserParameters) (InputSettings, OutputSettings) {
 	params.ApplyDefaults()
 	gitVersion := findGitVersion(params.GitCommand)
 	// TODO: look for .git in parent directories
@@ -72,13 +72,13 @@ func checkAndUpdateParameters(params *Parameters) (Input, Output) {
 	if len(params.ChangeSetName) == 0 || strings.ContainsAny(params.ChangeSetName, string(filepath.Separator)+" ") {
 		log.Fatalf("Invalid ChangeSetName %s", params.ChangeSetName)
 	}
-	return Input{
+	return InputSettings{
 			absSourceDir: absSourceDir,
 			envConfig: fp.EnvConfig{
 				GitCommand: params.GitCommand,
 				GitVersion: gitVersion,
 			},
-		}, Output{
+		}, OutputSettings{
 			absDestinationDir:               absDestinationDir,
 			absDestinationChangeSetJsonFile: filepath.Join(absDestinationDir, params.ChangeSetName+".json"),
 			absDestinationChangeSetDir:      filepath.Join(absDestinationDir, params.ChangeSetName),

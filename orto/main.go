@@ -16,7 +16,7 @@ import (
 // TODO: case change
 // TODO: test in windows and linux
 
-// TODO: We have Inputs and Input! Rename one.
+// TODO: rename "Inputs"
 type Inputs struct {
 	fsFiles              []FSFile
 	gitBlobs             []git.Blob
@@ -28,27 +28,27 @@ type Inputs struct {
 	gitSubmodules        []git.Submodule
 }
 
-type Input struct {
+type InputSettings struct {
 	absSourceDir string
 	envConfig    fp.EnvConfig
 }
 
-type Output struct {
+type OutputSettings struct {
 	absDestinationDir               string
 	absDestinationChangeSetDir      string
 	absDestinationChangeSetJsonFile string
 }
 
-func Start(params Parameters) {
-	input, output := checkAndUpdateParameters(&params)
-	inputs := gatherFiles(input)
+func Start(params UserParameters) {
+	inputSettings, outputSettings := checkAndUpdateUserParameters(&params)
+	inputs := read(inputSettings)
 	allChanges := compareFiles(inputs)
-	write(params.GitCommand, inputs, output, params.Inclusions.UnchangedFiles, allChanges)
+	write(inputSettings.envConfig, outputSettings, params.Inclusions.UnchangedFiles, allChanges)
 }
 
-func gatherFiles(input Input) Inputs {
-	absSourceDir := input.absSourceDir
-	PrintLogHeader("Found git version " + input.envConfig.GitVersion)
+func read(inputSettings InputSettings) Inputs {
+	absSourceDir := inputSettings.absSourceDir
+	PrintLogHeader("Found git version " + inputSettings.envConfig.GitVersion)
 	if !filepath.IsAbs(absSourceDir) {
 		panic("Not an absolute directory: " + absSourceDir)
 	}
@@ -57,11 +57,11 @@ func gatherFiles(input Input) Inputs {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gitBlobs, gitSubmodules := git.RunGetTreeForHead(input.envConfig)
+	gitBlobs, gitSubmodules := git.RunGetTreeForHead(inputSettings.envConfig)
 	inputs := Inputs{
 		fsFiles:       FsReadDir(absSourceDir),
 		gitBlobs:      gitBlobs,
-		gitStatus:     git.RunStatus(input.envConfig),
+		gitStatus:     git.RunStatus(inputSettings.envConfig),
 		gitSubmodules: gitSubmodules,
 	}
 	inputs.fsFileIndex = Index(inputs.fsFiles, func(file FSFile) string {
@@ -148,16 +148,16 @@ func compareFiles(status Inputs) []Change {
 	return allChanges
 }
 
-func write(gitCommand string, _ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change) {
+func write(envConfig fp.EnvConfig, outputSettings OutputSettings, copyUnchangedFiles bool, allChanges []Change) {
 	PrintLogHeader("Writing output...")
 
 	// TODO: do this properly:
-	err := os.Mkdir(output.absDestinationChangeSetDir, 0755)
+	err := os.Mkdir(outputSettings.absDestinationChangeSetDir, 0755)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	jsonOut := JsonOutput{absDestinationChangeSetJsonFile: output.absDestinationChangeSetJsonFile}
+	jsonOut := JsonOutput{absDestinationChangeSetJsonFile: outputSettings.absDestinationChangeSetJsonFile}
 	defer jsonOut.close()
 	jsonOut.start()
 
@@ -166,21 +166,21 @@ func write(gitCommand string, _ Inputs, output Output, copyUnchangedFiles bool, 
 		validateChange(change)
 		switch change.Kind {
 		case ChangeKindAdded:
-			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
-			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
+			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, outputSettings.absDestinationChangeSetDir)
+			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(outputSettings.absDestinationChangeSetDir, change.FsFile.CleanPath))
 		case ChangeKindModified:
 			// TODO: copy the old file too
-			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
-			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
+			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, outputSettings.absDestinationChangeSetDir)
+			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(outputSettings.absDestinationChangeSetDir, change.FsFile.CleanPath))
 		case ChangeKindDeleted:
-			SaveGitBlob(gitCommand, change.GitBlob.Checksum, change.GitBlob.CleanPath, output.absDestinationChangeSetDir)
+			SaveGitBlob(envConfig.GitCommand, change.GitBlob.Checksum, change.GitBlob.CleanPath, outputSettings.absDestinationChangeSetDir)
 			jsonOut.maybeAddComma() // TODO: finish this
 			jsonOut.encode(change.GitBlob)
 			PrintLogDel(change.GitBlob.CleanPath)
 		case ChangeKindUnchanged:
 			if copyUnchangedFiles {
-				CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
-				PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
+				CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, outputSettings.absDestinationChangeSetDir)
+				PrintLogCopy(change.FsFile.CleanPath, filepath.Join(outputSettings.absDestinationChangeSetDir, change.FsFile.CleanPath))
 			}
 		case ChangeKindIgnoredByGit:
 			// TODO
@@ -189,7 +189,7 @@ func write(gitCommand string, _ Inputs, output Output, copyUnchangedFiles bool, 
 		}
 	}
 
-	PrintLogHeader("Written " + output.absDestinationChangeSetJsonFile)
+	PrintLogHeader("Written " + outputSettings.absDestinationChangeSetJsonFile)
 
 	PrintLogHeader("Finished")
 }
