@@ -15,6 +15,7 @@ import (
 // TODO: case change
 // TODO: test in windows and linux
 
+// TODO: We have Inputs and Input! Rename one.
 type Inputs struct {
 	fsFiles              []FSFile
 	gitBlobs             []git.Blob
@@ -22,11 +23,13 @@ type Inputs struct {
 	gitFileIndex         map[string]git.Blob
 	gitStatus            []git.StatusLine
 	gitIgnoredFilesIndex map[string]string
+	gitCommand           string // TODO: fix this
 }
 
 type Input struct {
 	absSourceDir string
 	gitVersion   string
+	gitCommand   string
 }
 
 type Output struct {
@@ -39,7 +42,7 @@ func Start(params Parameters) {
 	input, output := checkAndUpdateParameters(&params)
 	inputs := gatherFiles(input)
 	allChanges := compareFiles(inputs)
-	write(inputs, output, params.Inclusions.UnchangedFiles, allChanges)
+	write(params.GitCommand, inputs, output, params.Inclusions.UnchangedFiles, allChanges)
 }
 
 func gatherFiles(input Input) Inputs {
@@ -55,8 +58,8 @@ func gatherFiles(input Input) Inputs {
 	}
 	inputs := Inputs{
 		fsFiles:   FsReadDir(absSourceDir),
-		gitBlobs:  git.RunGetTreeForHead(),
-		gitStatus: git.RunStatus(),
+		gitBlobs:  git.RunGetTreeForHead(input.gitCommand),
+		gitStatus: git.RunStatus(input.gitCommand),
 	}
 	inputs.fsFileIndex = Index(inputs.fsFiles, func(file FSFile) string {
 		return file.CleanPath
@@ -142,7 +145,7 @@ func compareFiles(status Inputs) []Change {
 	return allChanges
 }
 
-func write(_ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change) {
+func write(gitCommand string, _ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change) {
 	return
 	PrintLogHeader("Writing output...")
 
@@ -168,7 +171,7 @@ func write(_ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change
 			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
 			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
 		case ChangeKindDeleted:
-			SaveGitBlob(change.Blob.Checksum, change.Blob.CleanPath, output.absDestinationChangeSetDir)
+			SaveGitBlob(gitCommand, change.Blob.Checksum, change.Blob.CleanPath, output.absDestinationChangeSetDir)
 			jsonOut.maybeAddComma()
 			jsonOut.encode(change.Blob)
 			PrintLogDel(change.Blob.CleanPath)

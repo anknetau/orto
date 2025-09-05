@@ -43,10 +43,10 @@ func copyContents(src *os.File, dest *os.File) int64 {
 	return n
 }
 
-func SaveGitBlob(checksum fp.Checksum, path string, destAbsoluteDirectory string) {
+func SaveGitBlob(gitCommand string, checksum fp.Checksum, path string, destAbsoluteDirectory string) {
 	fp.CreateIntermediateDirectoriesForFile(path, destAbsoluteDirectory)
 
-	content := git.RunGetRawContent(checksum)
+	content := git.RunGetRawContent(gitCommand, checksum)
 	err := os.WriteFile(filepath.Join(destAbsoluteDirectory, path), content, 0644)
 	if err != nil {
 		log.Fatal(err)

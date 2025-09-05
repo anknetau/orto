@@ -7,9 +7,9 @@ import (
 	"github.com/anknetau/orto/fp"
 )
 
-func RunGetRawContent(checksum fp.Checksum) []byte {
+func RunGetRawContent(gitCommand string, checksum fp.Checksum) []byte {
 	// TODO: stream this rather than load it all into memory
-	cmd := exec.Command("git", "cat-file", "blob", string(checksum))
+	cmd := exec.Command(gitCommand, "cat-file", "blob", string(checksum))
 	out, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)

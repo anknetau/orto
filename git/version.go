@@ -12,8 +12,8 @@ var (
 	reGitVersion = regexp.MustCompile(`^(\d+)[.](\d+)[.](\d+(-rc\d+)?)$`)
 )
 
-func RunVersion() *string {
-	cmd := exec.Command("git", "--version")
+func RunVersion(gitCommand string) *string {
+	cmd := exec.Command(gitCommand, "--version")
 	out, err := cmd.Output()
 	if err != nil {
 		if errors.Is(err, exec.ErrNotFound) {

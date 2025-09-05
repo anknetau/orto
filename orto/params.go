@@ -16,15 +16,27 @@ type Inclusions struct {
 	UnchangedFiles  bool // TODO
 }
 
+// Parameters TODO: make it clear these are parameters sent by the user
 type Parameters struct {
 	Source        string
 	Destination   string
 	ChangeSetName string
+	GitCommand    string
 	Inclusions    Inclusions
 }
 
-func findGitVersion() string {
-	gitVersion := git.RunVersion()
+func setDefaultStringIfEmpty(key *string, def string) {
+	if *key == "" {
+		*key = def
+	}
+}
+
+func (p *Parameters) ApplyDefaults() {
+	setDefaultStringIfEmpty(&p.GitCommand, "git")
+}
+
+func findGitVersion(gitCommand string) string {
+	gitVersion := git.RunVersion(gitCommand)
 	if gitVersion == nil {
 		log.Fatal("Could not find git")
 	}
@@ -32,7 +44,8 @@ func findGitVersion() string {
 }
 
 func checkAndUpdateParameters(params *Parameters) (Input, Output) {
-	gitVersion := findGitVersion()
+	params.ApplyDefaults()
+	gitVersion := findGitVersion(params.GitCommand)
 	// TODO: look for .git in parent directories
 	// TODO: Automatically resolve source/dest to be absolute paths
 	if !filepath.IsAbs(params.Source) {
@@ -62,6 +75,7 @@ func checkAndUpdateParameters(params *Parameters) (Input, Output) {
 	return Input{
 			absSourceDir: absSourceDir,
 			gitVersion:   gitVersion,
+			gitCommand:   params.GitCommand,
 		}, Output{
 			absDestinationDir:               absDestinationDir,
 			absDestinationChangeSetJsonFile: filepath.Join(absDestinationDir, params.ChangeSetName+".json"),
