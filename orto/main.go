@@ -28,9 +28,13 @@ type Inputs struct {
 	gitSubmodules        []git.Submodule
 }
 
+type Settings struct {
+	input     InputSettings
+	output    OutputSettings
+	envConfig fp.EnvConfig
+}
 type InputSettings struct {
 	absSourceDir string
-	envConfig    fp.EnvConfig
 }
 
 type OutputSettings struct {
@@ -40,15 +44,15 @@ type OutputSettings struct {
 }
 
 func Start(params UserParameters) {
-	inputSettings, outputSettings := checkAndUpdateUserParameters(&params)
-	inputs := read(inputSettings)
+	settings := checkAndUpdateUserParameters(&params)
+	inputs := read(settings.input, settings.envConfig)
 	allChanges := compareFiles(inputs)
-	write(inputSettings.envConfig, outputSettings, params.Inclusions.UnchangedFiles, allChanges)
+	write(settings.envConfig, settings.output, params.Inclusions.UnchangedFiles, allChanges)
 }
 
-func read(inputSettings InputSettings) Inputs {
+func read(inputSettings InputSettings, envConfig fp.EnvConfig) Inputs {
 	absSourceDir := inputSettings.absSourceDir
-	PrintLogHeader("Found git version " + inputSettings.envConfig.GitVersion)
+	PrintLogHeader("Found git version " + envConfig.GitVersion)
 	if !filepath.IsAbs(absSourceDir) {
 		panic("Not an absolute directory: " + absSourceDir)
 	}
@@ -57,11 +61,11 @@ func read(inputSettings InputSettings) Inputs {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gitBlobs, gitSubmodules := git.RunGetTreeForHead(inputSettings.envConfig)
+	gitBlobs, gitSubmodules := git.RunGetTreeForHead(envConfig)
 	inputs := Inputs{
 		fsFiles:       FsReadDir(absSourceDir),
 		gitBlobs:      gitBlobs,
-		gitStatus:     git.RunStatus(inputSettings.envConfig),
+		gitStatus:     git.RunStatus(envConfig),
 		gitSubmodules: gitSubmodules,
 	}
 	inputs.fsFileIndex = Index(inputs.fsFiles, func(file FSFile) string {
@@ -86,6 +90,7 @@ func compareFiles(status Inputs) []Change {
 	PrintLogHeader("Comparing...")
 	common, left, right := CompareFiles(status.fsFiles, status.gitBlobs, status.fsFileIndex, status.gitBlobIndex)
 
+	// TODO: is this happening or not?
 	// Filter out ignored
 	//var aLeft []FSFile
 	//for _, f := range left {

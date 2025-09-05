@@ -43,7 +43,7 @@ func findGitVersion(gitCommand string) string {
 	return *gitVersion
 }
 
-func checkAndUpdateUserParameters(params *UserParameters) (InputSettings, OutputSettings) {
+func checkAndUpdateUserParameters(params *UserParameters) Settings {
 	params.ApplyDefaults()
 	gitVersion := findGitVersion(params.GitCommand)
 	// TODO: look for .git in parent directories
@@ -72,17 +72,20 @@ func checkAndUpdateUserParameters(params *UserParameters) (InputSettings, Output
 	if len(params.ChangeSetName) == 0 || strings.ContainsAny(params.ChangeSetName, string(filepath.Separator)+" ") {
 		log.Fatalf("Invalid ChangeSetName %s", params.ChangeSetName)
 	}
-	return InputSettings{
+	return Settings{
+		input: InputSettings{
 			absSourceDir: absSourceDir,
-			envConfig: fp.EnvConfig{
-				GitCommand: params.GitCommand,
-				GitVersion: gitVersion,
-			},
-		}, OutputSettings{
+		},
+		output: OutputSettings{
 			absDestinationDir:               absDestinationDir,
 			absDestinationChangeSetJsonFile: filepath.Join(absDestinationDir, params.ChangeSetName+".json"),
 			absDestinationChangeSetDir:      filepath.Join(absDestinationDir, params.ChangeSetName),
-		}
+		},
+		envConfig: fp.EnvConfig{
+			GitCommand: params.GitCommand,
+			GitVersion: gitVersion,
+		},
+	}
 }
 
 func CheckSourceDirectory(path string) {
