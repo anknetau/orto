@@ -24,6 +24,7 @@ func RunVersion(gitCommand string) *string {
 	}
 	output := string(out)
 	output = strings.TrimSpace(output)
+	// Version looks like major.minor.path(-rcN)
 	version, ok := strings.CutPrefix(output, "git version ")
 	if !ok {
 		log.Fatalf("Version response from git not recognized: [%s]", output)

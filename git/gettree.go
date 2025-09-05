@@ -8,8 +8,8 @@ import (
 	"github.com/anknetau/orto/fp"
 )
 
-func RunGetTreeForHead(gitCommand string) []Blob {
-	cmd := exec.Command(gitCommand, "ls-tree", "HEAD", "-r", "--format=%(objecttype)|>%(objectname)|>%(path)|>%(objectmode)")
+func RunGetTreeForHead(config fp.EnvConfig) []Blob {
+	cmd := exec.Command(config.GitCommand, "ls-tree", "HEAD", "-r", "--format=%(objecttype)|>%(objectname)|>%(path)|>%(objectmode)")
 	out, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)

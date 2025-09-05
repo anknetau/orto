@@ -240,8 +240,8 @@ func JoinInputWhenNeededIter(input iter.Seq[string]) iter.Seq[string] {
 	}
 }
 
-func RunStatus(gitCommand string) []StatusLine {
-	cmd := exec.Command(gitCommand, "status", "--porcelain=v2", "--untracked-files=all", "--show-stash", "--branch", "--ignored", "-z")
+func RunStatus(config fp.EnvConfig) []StatusLine {
+	cmd := exec.Command(config.GitCommand, "status", "--porcelain=v2", "--untracked-files=all", "--show-stash", "--branch", "--ignored", "-z")
 	out, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)

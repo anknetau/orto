@@ -74,8 +74,10 @@ func checkAndUpdateParameters(params *Parameters) (Input, Output) {
 	}
 	return Input{
 			absSourceDir: absSourceDir,
-			gitVersion:   gitVersion,
-			gitCommand:   params.GitCommand,
+			envConfig: fp.EnvConfig{
+				GitCommand: params.GitCommand,
+				GitVersion: gitVersion,
+			},
 		}, Output{
 			absDestinationDir:               absDestinationDir,
 			absDestinationChangeSetJsonFile: filepath.Join(absDestinationDir, params.ChangeSetName+".json"),

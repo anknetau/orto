@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/anknetau/orto/fp"
 	"github.com/anknetau/orto/git"
 )
 
@@ -23,13 +24,12 @@ type Inputs struct {
 	gitFileIndex         map[string]git.Blob
 	gitStatus            []git.StatusLine
 	gitIgnoredFilesIndex map[string]string
-	gitCommand           string // TODO: fix this
+	envConfig            fp.EnvConfig
 }
 
 type Input struct {
 	absSourceDir string
-	gitVersion   string
-	gitCommand   string
+	envConfig    fp.EnvConfig
 }
 
 type Output struct {
@@ -47,7 +47,7 @@ func Start(params Parameters) {
 
 func gatherFiles(input Input) Inputs {
 	absSourceDir := input.absSourceDir
-	PrintLogHeader("Found git version " + input.gitVersion)
+	PrintLogHeader("Found git version " + input.envConfig.GitVersion)
 	if !filepath.IsAbs(absSourceDir) {
 		panic("Not an absolute directory: " + absSourceDir)
 	}
@@ -58,8 +58,8 @@ func gatherFiles(input Input) Inputs {
 	}
 	inputs := Inputs{
 		fsFiles:   FsReadDir(absSourceDir),
-		gitBlobs:  git.RunGetTreeForHead(input.gitCommand),
-		gitStatus: git.RunStatus(input.gitCommand),
+		gitBlobs:  git.RunGetTreeForHead(input.envConfig),
+		gitStatus: git.RunStatus(input.envConfig),
 	}
 	inputs.fsFileIndex = Index(inputs.fsFiles, func(file FSFile) string {
 		return file.CleanPath
