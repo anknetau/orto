@@ -70,3 +70,13 @@ Unlike `git stash`, which keeps temporary changes inside the .git internals, Ort
   - Consider separating the phases into independent programs
   - Allow output to non-empty directory?
   - Allow output to a parent or child directory in some cases?
+
+- **Technical information**
+  - File cloning 
+    - [Is it possible to clone directories in APFS? - Ask Different](https://apple.stackexchange.com/questions/322036/is-it-possible-to-clone-directories-in-apfs)
+    - [BSD clonefile(2)](https://www.manpagez.com/man/2/clonefile/)
+    - [CloneFile call](https://github.com/christian-korneck/macos-clonefile/tree/main)
+    - [Efficient data/file copying on modern Linux](https://cfengine.com/blog/2024/efficient-data-copying-on-modern-linux/)
+    - [Go Proposal: os: add Copy](https://github.com/golang/go/issues/56172)
+    - [Go Renameio package](https://pkg.go.dev/github.com/google/renameio#section-readme)
+    - [ioctl_ficlonerange, ioctl_ficlone - share some the data of one file with another file](https://man7.org/linux/man-pages/man2/ioctl_ficlonerange.2.html)
