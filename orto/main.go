@@ -41,13 +41,14 @@ type OutputSettings struct {
 	absDestinationDir               string
 	absDestinationChangeSetDir      string
 	absDestinationChangeSetJsonFile string
+	copyUnchangedFiles              bool
 }
 
 func Start(params UserParameters) {
 	settings := checkAndUpdateUserParameters(&params)
 	inputs := read(settings.input, settings.envConfig)
-	allChanges := compareFiles(inputs)
-	write(settings.envConfig, settings.output, params.Inclusions.UnchangedFiles, allChanges)
+	changes := compare(inputs)
+	write(settings.envConfig, settings.output, changes)
 }
 
 func read(inputSettings InputSettings, envConfig fp.EnvConfig) Inputs {
@@ -86,7 +87,7 @@ func read(inputSettings InputSettings, envConfig fp.EnvConfig) Inputs {
 	return inputs
 }
 
-func compareFiles(status Inputs) []Change {
+func compare(status Inputs) []Change {
 	PrintLogHeader("Comparing...")
 	common, left, right := CompareFiles(status.fsFiles, status.gitBlobs, status.fsFileIndex, status.gitBlobIndex)
 
@@ -99,31 +100,31 @@ func compareFiles(status Inputs) []Change {
 	//	}
 	//}
 
-	var allChanges []Change
+	var changes []Change
 	for _, f := range left {
 		change := ComparePair(nil, &f, status.gitIgnoredFilesIndex)
-		allChanges = append(allChanges, change)
+		changes = append(changes, change)
 	}
 	for _, f := range right {
 		change := ComparePair(&f, nil, status.gitIgnoredFilesIndex)
-		allChanges = append(allChanges, change)
+		changes = append(changes, change)
 	}
 	for _, c := range common {
 		change := ComparePair(&c.GitBlob, &c.FsFile, status.gitIgnoredFilesIndex)
-		allChanges = append(allChanges, change)
+		changes = append(changes, change)
 	}
 
-	for _, c := range allChanges {
+	for _, c := range changes {
 		if c.Kind == ChangeKindAdded || c.Kind == ChangeKindModified || c.Kind == ChangeKindDeleted {
 			PrintChange(c)
 		}
 	}
-	for _, c := range allChanges {
+	for _, c := range changes {
 		if c.Kind == ChangeKindUnchanged {
 			PrintChange(c)
 		}
 	}
-	for _, c := range allChanges {
+	for _, c := range changes {
 		if c.Kind == ChangeKindIgnoredByGit {
 			PrintChange(c)
 		}
@@ -131,7 +132,7 @@ func compareFiles(status Inputs) []Change {
 
 	ortoIgnores := 0
 	ortoDotGitIgnores := 0
-	for _, c := range allChanges {
+	for _, c := range changes {
 		if c.Kind == ChangeKindIgnoredByOrto {
 			ortoIgnores++
 			// TODO: fix this:
@@ -143,17 +144,17 @@ func compareFiles(status Inputs) []Change {
 	if ortoIgnores == ortoDotGitIgnores && ortoIgnores > 0 {
 		println("⛔︎ OrtoIgnored", ".git/**")
 	} else {
-		for _, c := range allChanges {
+		for _, c := range changes {
 			if c.Kind == ChangeKindIgnoredByOrto {
 				PrintChange(c)
 			}
 		}
 	}
 
-	return allChanges
+	return changes
 }
 
-func write(envConfig fp.EnvConfig, outputSettings OutputSettings, copyUnchangedFiles bool, allChanges []Change) {
+func write(envConfig fp.EnvConfig, outputSettings OutputSettings, changes []Change) {
 	PrintLogHeader("Writing output...")
 
 	// TODO: do this properly:
@@ -166,7 +167,7 @@ func write(envConfig fp.EnvConfig, outputSettings OutputSettings, copyUnchangedF
 	defer jsonOut.close()
 	jsonOut.start()
 
-	for _, change := range allChanges {
+	for _, change := range changes {
 		//fmt.Printf("%#v,%#v\n", change.FsFile, change.GitBlob)
 		validateChange(change)
 		switch change.Kind {
@@ -183,7 +184,7 @@ func write(envConfig fp.EnvConfig, outputSettings OutputSettings, copyUnchangedF
 			jsonOut.encode(change.GitBlob)
 			PrintLogDel(change.GitBlob.CleanPath)
 		case ChangeKindUnchanged:
-			if copyUnchangedFiles {
+			if outputSettings.copyUnchangedFiles {
 				CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, outputSettings.absDestinationChangeSetDir)
 				PrintLogCopy(change.FsFile.CleanPath, filepath.Join(outputSettings.absDestinationChangeSetDir, change.FsFile.CleanPath))
 			}

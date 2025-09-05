@@ -10,19 +10,15 @@ import (
 	"github.com/anknetau/orto/git"
 )
 
-type Inclusions struct {
-	DotGit          bool // TODO
-	GitIgnoredFiles bool // TODO
-	UnchangedFiles  bool // TODO
-}
-
 // UserParameters are parameters set by the user
 type UserParameters struct {
-	Source        string
-	Destination   string
-	ChangeSetName string
-	GitCommand    string
-	Inclusions    Inclusions
+	Source              string
+	Destination         string
+	ChangeSetName       string
+	GitCommand          string
+	CopyDotGit          bool // TODO
+	CopyGitIgnoredFiles bool // TODO
+	CopyUnchangedFiles  bool
 }
 
 func setDefaultStringIfEmpty(key *string, def string) {
@@ -80,6 +76,7 @@ func checkAndUpdateUserParameters(params *UserParameters) Settings {
 			absDestinationDir:               absDestinationDir,
 			absDestinationChangeSetJsonFile: filepath.Join(absDestinationDir, params.ChangeSetName+".json"),
 			absDestinationChangeSetDir:      filepath.Join(absDestinationDir, params.ChangeSetName),
+			copyUnchangedFiles:              params.CopyUnchangedFiles,
 		},
 		envConfig: fp.EnvConfig{
 			GitCommand: params.GitCommand,
