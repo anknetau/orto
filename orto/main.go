@@ -21,10 +21,11 @@ type Inputs struct {
 	fsFiles              []FSFile
 	gitBlobs             []git.Blob
 	fsFileIndex          map[string]FSFile
-	gitFileIndex         map[string]git.Blob
+	gitBlobIndex         map[string]git.Blob
 	gitStatus            []git.StatusLine
 	gitIgnoredFilesIndex map[string]string
 	envConfig            fp.EnvConfig
+	gitSubmodules        []git.Submodule
 }
 
 type Input struct {
@@ -56,15 +57,17 @@ func gatherFiles(input Input) Inputs {
 	if err != nil {
 		log.Fatal(err)
 	}
+	gitBlobs, gitSubmodules := git.RunGetTreeForHead(input.envConfig)
 	inputs := Inputs{
-		fsFiles:   FsReadDir(absSourceDir),
-		gitBlobs:  git.RunGetTreeForHead(input.envConfig),
-		gitStatus: git.RunStatus(input.envConfig),
+		fsFiles:       FsReadDir(absSourceDir),
+		gitBlobs:      gitBlobs,
+		gitStatus:     git.RunStatus(input.envConfig),
+		gitSubmodules: gitSubmodules,
 	}
 	inputs.fsFileIndex = Index(inputs.fsFiles, func(file FSFile) string {
 		return file.CleanPath
 	})
-	inputs.gitFileIndex = Index(inputs.gitBlobs, func(file git.Blob) string {
+	inputs.gitBlobIndex = Index(inputs.gitBlobs, func(file git.Blob) string {
 		return file.CleanPath
 	})
 
@@ -81,7 +84,7 @@ func gatherFiles(input Input) Inputs {
 
 func compareFiles(status Inputs) []Change {
 	PrintLogHeader("Comparing...")
-	common, left, right := CompareFiles(status.fsFiles, status.gitBlobs, status.fsFileIndex, status.gitFileIndex)
+	common, left, right := CompareFiles(status.fsFiles, status.gitBlobs, status.fsFileIndex, status.gitBlobIndex)
 
 	// Filter out ignored
 	//var aLeft []FSFile
@@ -101,7 +104,7 @@ func compareFiles(status Inputs) []Change {
 		allChanges = append(allChanges, change)
 	}
 	for _, c := range common {
-		change := ComparePair(&c.GitFile, &c.FsFile, status.gitIgnoredFilesIndex)
+		change := ComparePair(&c.GitBlob, &c.FsFile, status.gitIgnoredFilesIndex)
 		allChanges = append(allChanges, change)
 	}
 
@@ -146,7 +149,6 @@ func compareFiles(status Inputs) []Change {
 }
 
 func write(gitCommand string, _ Inputs, output Output, copyUnchangedFiles bool, allChanges []Change) {
-	return
 	PrintLogHeader("Writing output...")
 
 	// TODO: do this properly:
@@ -160,7 +162,7 @@ func write(gitCommand string, _ Inputs, output Output, copyUnchangedFiles bool, 
 	jsonOut.start()
 
 	for _, change := range allChanges {
-		//fmt.Printf("%#v,%#v\n", change.FsFile, change.Blob)
+		//fmt.Printf("%#v,%#v\n", change.FsFile, change.GitBlob)
 		validateChange(change)
 		switch change.Kind {
 		case ChangeKindAdded:
@@ -171,10 +173,10 @@ func write(gitCommand string, _ Inputs, output Output, copyUnchangedFiles bool, 
 			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
 			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(output.absDestinationChangeSetDir, change.FsFile.CleanPath))
 		case ChangeKindDeleted:
-			SaveGitBlob(gitCommand, change.Blob.Checksum, change.Blob.CleanPath, output.absDestinationChangeSetDir)
-			jsonOut.maybeAddComma()
-			jsonOut.encode(change.Blob)
-			PrintLogDel(change.Blob.CleanPath)
+			SaveGitBlob(gitCommand, change.GitBlob.Checksum, change.GitBlob.CleanPath, output.absDestinationChangeSetDir)
+			jsonOut.maybeAddComma() // TODO: finish this
+			jsonOut.encode(change.GitBlob)
+			PrintLogDel(change.GitBlob.CleanPath)
 		case ChangeKindUnchanged:
 			if copyUnchangedFiles {
 				CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, output.absDestinationChangeSetDir)
@@ -196,32 +198,32 @@ func validateChange(c Change) {
 	switch c.Kind {
 	case ChangeKindAdded:
 		// Only FsFile
-		if c.FsFile == nil || c.Blob != nil {
+		if c.FsFile == nil || c.GitBlob != nil {
 			panic("Illegal state")
 		}
 	case ChangeKindDeleted:
 		// Only blob
-		if c.FsFile != nil || c.Blob == nil {
+		if c.FsFile != nil || c.GitBlob == nil {
 			panic("Illegal state")
 		}
 	case ChangeKindUnchanged:
 		// Has both
-		if c.Blob == nil || c.FsFile == nil {
+		if c.GitBlob == nil || c.FsFile == nil {
 			panic("Illegal state")
 		}
 	case ChangeKindModified:
 		// Has both
-		if c.FsFile == nil || c.Blob == nil {
+		if c.FsFile == nil || c.GitBlob == nil {
 			panic("Illegal state")
 		}
 	case ChangeKindIgnoredByGit:
 		// Only FSFile
-		if c.FsFile == nil || c.Blob != nil {
+		if c.FsFile == nil || c.GitBlob != nil {
 			panic("Illegal state")
 		}
 	case ChangeKindIgnoredByOrto:
 		// Only FSFile
-		if c.FsFile == nil || c.Blob != nil {
+		if c.FsFile == nil || c.GitBlob != nil {
 			panic("Illegal state")
 		}
 	}

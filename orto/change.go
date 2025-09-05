@@ -15,7 +15,7 @@ const (
 )
 
 type Change struct {
-	Kind   ChangeKind
-	FsFile *FSFile
-	Blob   *git.Blob
+	Kind    ChangeKind
+	FsFile  *FSFile
+	GitBlob *git.Blob
 }

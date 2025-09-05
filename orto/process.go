@@ -13,7 +13,7 @@ import (
 // TODO: rename this:
 type Both struct {
 	FsFile  FSFile
-	GitFile git.Blob
+	GitBlob git.Blob
 }
 
 func Filter[T any, U any](items []T, callback func(*T) *U) []U {
@@ -100,7 +100,7 @@ func PrintChange(change Change) {
 	case ChangeKindAdded:
 		println("  ❇️ Added", change.FsFile.CleanPath)
 	case ChangeKindDeleted:
-		println("  ❌ Deleted", change.Blob.CleanPath)
+		println("  ❌ Deleted", change.GitBlob.CleanPath)
 	case ChangeKindUnchanged:
 		println("  ➖ Unchanged", change.FsFile.CleanPath)
 	case ChangeKindModified:
@@ -112,23 +112,23 @@ func PrintChange(change Change) {
 	}
 }
 
-func CompareFiles(fsFiles []FSFile, gitBlobs []git.Blob, fsFileIndex map[string]FSFile, gitFileIndex map[string]git.Blob) ([]Both, []FSFile, []git.Blob) {
+func CompareFiles(fsFiles []FSFile, gitBlobs []git.Blob, fsFileIndex map[string]FSFile, gitBlobIndex map[string]git.Blob) ([]Both, []FSFile, []git.Blob) {
 	var common []Both
 	var left []FSFile
 	var right []git.Blob
 	for _, fsFile := range fsFiles {
-		gitFile, ok := gitFileIndex[fsFile.CleanPath]
+		gitBlob, ok := gitBlobIndex[fsFile.CleanPath]
 		if ok {
-			common = append(common, Both{FsFile: fsFile, GitFile: gitFile})
+			common = append(common, Both{FsFile: fsFile, GitBlob: gitBlob})
 		} else {
 			left = append(left, fsFile)
 		}
 	}
 
-	for _, gitFile := range gitBlobs {
-		_, ok := fsFileIndex[gitFile.CleanPath]
+	for _, gitBlob := range gitBlobs {
+		_, ok := fsFileIndex[gitBlob.CleanPath]
 		if !ok {
-			right = append(right, gitFile)
+			right = append(right, gitBlob)
 		}
 	}
 	return common, left, right
@@ -155,7 +155,7 @@ func isOrtoIgnored(fsFile *FSFile) bool {
 	return false
 }
 
-func ComparePair(blob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string) Change {
+func ComparePair(gitBlob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string) Change {
 	if fsFile != nil {
 		if isOrtoIgnored(fsFile) {
 			return Change{Kind: ChangeKindIgnoredByOrto, FsFile: fsFile}
@@ -164,12 +164,12 @@ func ComparePair(blob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string
 			return Change{Kind: ChangeKindIgnoredByGit, FsFile: fsFile}
 		}
 	}
-	if blob == nil && fsFile == nil {
+	if gitBlob == nil && fsFile == nil {
 		panic("Illegal state")
 	}
-	if blob != nil && fsFile != nil {
-		if blob.CleanPath != fsFile.CleanPath {
-			panic("Illegal state: " + blob.CleanPath + " " + fsFile.CleanPath)
+	if gitBlob != nil && fsFile != nil {
+		if gitBlob.CleanPath != fsFile.CleanPath {
+			panic("Illegal state: " + gitBlob.CleanPath + " " + fsFile.CleanPath)
 		}
 		// TODO: os.Stat follows symlinks apparently
 		stat, err := os.Stat(fsFile.Path)
@@ -179,14 +179,14 @@ func ComparePair(blob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string
 		if stat.IsDir() {
 			panic("was dir: " + fsFile.Path)
 		}
-		calculatedChecksum := fp.ChecksumBlob(blob.Path, blob.Checksum.GetAlgo())
-		if calculatedChecksum == blob.Checksum {
-			return Change{Kind: ChangeKindUnchanged, FsFile: fsFile, Blob: blob}
+		calculatedChecksum := fp.ChecksumBlob(gitBlob.Path, gitBlob.Checksum.GetAlgo())
+		if calculatedChecksum == gitBlob.Checksum {
+			return Change{Kind: ChangeKindUnchanged, FsFile: fsFile, GitBlob: gitBlob}
 		} else {
-			return Change{Kind: ChangeKindModified, FsFile: fsFile, Blob: blob}
+			return Change{Kind: ChangeKindModified, FsFile: fsFile, GitBlob: gitBlob}
 		}
-	} else if blob != nil {
-		return Change{Kind: ChangeKindDeleted, Blob: blob}
+	} else if gitBlob != nil {
+		return Change{Kind: ChangeKindDeleted, GitBlob: gitBlob}
 	} else {
 		return Change{Kind: ChangeKindAdded, FsFile: fsFile}
 	}
