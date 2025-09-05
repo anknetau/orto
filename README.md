@@ -36,7 +36,7 @@ Unlike `git stash`, which keeps temporary changes inside the .git internals, Ort
   - Support arbitrary commits
   - More ignore/include file option
 
-- **Compare phase**
+- **Diff phase**
   - Consider using inodes/etc to check if a file is the same / deduplicate hard links
 
 - **Write phase**
@@ -58,7 +58,7 @@ Unlike `git stash`, which keeps temporary changes inside the .git internals, Ort
   - Figure out if there's been a case change, think about how to handle it in different OSs/file systems.
   - Process and include staged (index) changes
   - Save remote, branch and commit info (i.e., where the information came from)
-  - Allow find/compare/write to stream rather than executing in sequence.
+  - Allow find/diff/write to stream rather than executing in sequence.
   - Error recovery where it makes sense
   - Test unmerged files
   - Set up CI pipeline
