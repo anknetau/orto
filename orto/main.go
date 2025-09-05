@@ -9,16 +9,6 @@ import (
 	"github.com/anknetau/orto/git"
 )
 
-// TODO: symlinks appear as blobs but with a different mode. also check symlinks on the filesystem.
-// TODO: empty dirs?
-// TODO: how do we know if a file is the same file? inodes, etc?
-// TODO: figure out if there's been a case change, think about what that can do.
-// TODO: test in windows and linux
-// TODO: process and include staged (index) changes
-// TODO: save diffs - small and large, perhaps even in a single file
-// TODO: save where the branch is, etc
-// TODO: command line options
-
 type Catalog struct {
 	fsFiles              []FSFile
 	gitBlobs             []git.Blob
