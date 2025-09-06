@@ -114,7 +114,7 @@ func testLength() {
 	longest2 := findLongestFilename(doubleByte)
 	println(" Longest filename for double byte UTF-8:", longest2, " (", len(doubleByte)*longest2, "bytes)")
 	longest3 := findLongestFilename(tripleByte)
-	println(" Longest filename for triple byte UTF-8 (2 x UTF-16):", longest3, "(", len(tripleByte)*longest3, "bytes)")
+	println(" Longest filename for triple byte UTF-8 (1 x UTF-16):", longest3, "(", len(tripleByte)*longest3, "bytes)")
 	longest4 := findLongestFilename(quadByte)
 	println(" Longest filename for quad byte UTF-8 (2 x UTF-16):", longest4, "(", len(quadByte)*longest4, "bytes)")
 }
@@ -168,7 +168,7 @@ func testBytesInLoop(f func(i int) string) {
 		result := testName(name)
 		if result != NameTestOk {
 			character := ""
-			if i >= 32 {
+			if i >= 32 && i != 127 {
 				character = " '" + string(byte(i)) + "'"
 			}
 			println("  Character rejected: #" + strconv.Itoa(i) + character)
