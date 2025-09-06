@@ -19,7 +19,7 @@ type UserParameters struct {
 	CopyDotGit          bool
 	CopyGitIgnoredFiles bool // TODO
 	CopyUnchangedFiles  bool
-	// TODO: CopyContentsOfSubmodules?
+	// TODO: CopyContentsOfSubmodules? Do we need to diff those too, recursively?
 }
 
 func setDefaultStringIfEmpty(key *string, def string) {
