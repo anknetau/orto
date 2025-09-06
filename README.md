@@ -8,14 +8,23 @@ It provides a clean and independent layer for managing data alongside your Git r
 
 # What? Why?
 
+Orto is designed to **never modify your git repository in any way**, so it can be used with any Git workflow and in any state, no matter how unmerged or broken the git repo is.
+
 Unlike `git stash`, which keeps temporary changes inside the .git internals, Orto acts as a **safe stash**. It lets you save a snapshot of your uncommitted changes outside of the repository, manage them orthogonally, and bring them back when you need them. This keeps your repository history and stash list uncluttered while giving you fine-grained control over your work-in-progress.
+
+Unlike `git bundle`, Orto's output system is designed for flexibility, human readability, archival and to be used even without having access to git. Multiple output formats will be supported, and, due to Orto's architecture, packfile/bundle writers can be developed for Orto.
+
+Orto will also include a restore phase, allowing you to selectively bring your data back to the state it was in when you saved it.
+
+By design, Orto is able to archive your `.git` directory along with your changes, for those cases where the repository may be in a potentially inconsistent or vulnerable state.
 
 ## Planned Features
 
 - Written in Go for speed and portability
 - Orthogonal design: manage data without polluting your Git history  
 - Lightweight integration with existing Git workflows  
-- Several output options (zip, tar.bz2, raw directories, patch, separate git repo, etc.)
+- Several output options (zip, tar.bz2, raw directories, patch, separate git repo, packfiles, etc.)
+- Archive/backup git repo along with data
 - Include files that git ignores
 - Encryption to safely store untracked files with credentials
 - Simple setup and usage
@@ -64,6 +73,9 @@ Unlike `git stash`, which keeps temporary changes inside the .git internals, Ort
   - Set up CI pipeline
   - Set up automatic linter and formatter
   - Restore phase
+  - Git LFS
+  - Finish submodule support
+  - Backup Hooks & Configs
 
 - **Questions**
   - Interactive mode?
