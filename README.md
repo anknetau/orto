@@ -28,10 +28,20 @@ By design, Orto is able to archive your `.git` directory along with your changes
 - Include files that git ignores
 - Encryption to safely store untracked files with credentials
 - Simple setup and usage
+- Include a list of the changes and state of the working copy/index/etc.
 - Cloning files rather than copying them when supported (e.g., APFS, Btrfs.) Thanks
   [Chris Hulbert](https://www.splinter.com.au) for the idea!
 
-## Current progress - TODO List
+## Progress - The road to 1.0
+
+| Component                                                                                | Progress |
+|------------------------------------------------------------------------------------------|----------|
+| **Find Phase** - Builds a catalog of the current state of the git repo and the filesystem | 🟩🟩🟩🟨🟥 75% |
+| **Diff Phase** - Compares working tree with Git objects, index, etc.                     | 🟩🟩🟨🟥🟥 50% |
+| **Write Phase** - Outputs changes to destination format                                  | 🟩🟨🟥🟥🟥 30% |
+| **Restore Phase** - Selectively applies saved changes                                    | ⬜⬜⬜⬜⬜ 0% |
+
+## To Do
 
 - **Startup**
   - Implement CLI
