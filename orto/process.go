@@ -1,7 +1,6 @@
 package orto
 
 import (
-	"encoding/json"
 	"log"
 	"os"
 	"path/filepath"
@@ -192,13 +191,4 @@ func ComparePair(gitBlob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[str
 	} else {
 		return Change{Kind: ChangeKindAdded, FsFile: fsFile}
 	}
-}
-
-func debug(value any) {
-	// fmt.Printf("%#v\n", entries)
-	b, err := json.MarshalIndent(value, "", " ")
-	if err != nil {
-		log.Fatal(err)
-	}
-	println(string(b))
 }
