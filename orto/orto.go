@@ -227,3 +227,7 @@ func validateChange(c Change) {
 		}
 	}
 }
+
+func Version() string {
+	return "0.3.20250906" // TODO: maintain/increment this
+}
