@@ -24,7 +24,7 @@ import (
 //  https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/APFS_Guide/FAQ/FAQ.html
 // Avoid using ':' as it appears to users as '/'
 // APFS accepts only valid UTF-8 encoded filenames for creation, and preserves both case and normalization of the filename on disk in all variants. APFS, like HFS+, is case-sensitive on iOS and is available in case-sensitive and case-insensitive variants on macOS, with case-insensitive being the default.
-// Also normalization sensitive.
+// Also: normalization sensitive.
 // Seems to be limited to 255 bytes in utf-8
 
 // Btrfs limits:
