@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/anknetau/orto/cli"
 	"github.com/anknetau/orto/orto"
 )
 
@@ -50,6 +51,9 @@ func jsonOutputTest() {
 }
 
 func main() {
+	x := cli.ParseOrExit()
+	x.ChangeSetName = "2025-01-01-my-thing"
+	return
 	orto.Run(orto.UserParameters{
 		// "/Users/ank/dev/accounting/accounting"
 		// "/Users/ank/dev/mirrors"

@@ -6,17 +6,22 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/anknetau/orto/orto"
 	"github.com/anknetau/orto/util"
 )
 
-func usage(fs *flag.FlagSet) {
-	util.PrintErrf("orto v%s usage:\n", orto.Version())
-	util.PrintErrf("orto [flags] <input_dir> <output_dir>\n\n")
-	util.PrintErrf("Flags are:\n")
+func printUsage(fs *flag.FlagSet) {
+	util.ErrPrintLnf("orto v%s usage:\n", orto.Version())
+	util.ErrPrintLnf("orto [flags] <input_dir> <output_dir>\n")
+	util.ErrPrintLnf("Flags are:\n")
+	util.ErrPrintLnf("  -help: show help")
 	fs.SetOutput(os.Stderr)
 	fs.PrintDefaults()
+	flag.PrintDefaults()
+	util.ErrPrintLnf("")
+	util.ErrPrintLnf("Flags can be passed with one or two dashes: -x and --x are equivalent\n")
 }
 
 var (
@@ -25,32 +30,32 @@ var (
 
 func ParseOrExit() orto.UserParameters {
 	result := orto.UserParameters{}
-	fs := flag.NewFlagSet("myprog", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
-	fs.Usage = func() {}
-	boolFlag := fs.Bool("help", false, "show help")
-	fs.StringVar(&result.ChangeSetName, "ChangeSetName", "", "changesetname")
+	flagSet := flag.NewFlagSet("orto", flag.ContinueOnError)
+	flagSet.SetOutput(io.Discard)
+	flagSet.Usage = func() {}
+	//boolFlag := flagSet.Bool("help", false, "show help")
+	now := util.SerializedDateTime(time.Now())
+	flagSet.StringVar(&result.ChangeSetName, "ChangeSetName", "", "ChangeSetName to use. Default: current datetime (eg '"+now+"')")
 
-	err := fs.Parse(os.Args[1:])
+	err := flagSet.Parse(os.Args[1:])
 
+	if errors.Is(err, flag.ErrHelp) {
+		printUsage(flagSet)
+		os.Exit(2)
+	}
 	if err != nil {
 		usageFatal(err)
 		os.Exit(2)
 	}
 
-	if *boolFlag {
-		usage(fs)
-		os.Exit(2)
-	}
-
 	//fmt.fprintln(, "n =", *nFlag)
-	if len(fs.Args()) != 2 {
-		usageFatal("Invalid number of arguments. See 'orto --help'")
+	if len(flagSet.Args()) != 2 {
+		usageFatal("Invalid number of arguments. See 'orto -h'")
 	}
 	println("starting...")
-	util.Debug(fs.Args())
-	//input := fs.Args()[0]
-	//output := fs.Args()[1]
+	util.Debug(flagSet.Args())
+	//input := flagSet.Args()[0]
+	//output := flagSet.Args()[1]
 	return result
 }
 

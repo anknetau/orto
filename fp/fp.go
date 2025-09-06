@@ -98,7 +98,7 @@ func ValidFilePathForOrtoOrDie(path string) {
 }
 
 var (
-	reValidFilePathName = regexp.MustCompile(`^[a-zA-Z0-9_.\-~@#$%^&=+{}\[\]:;,<>()]+$`)
+	reValidFilePathName = regexp.MustCompile(`^[a-zA-Z0-9_.\-~@#$%^&=+{}\[\];,()]+$`)
 )
 
 func ValidFilePathForOrto(path string) bool {
