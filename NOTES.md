@@ -10,3 +10,7 @@ Static check, see https://github.com/dominikh/go-tools/tags
 also: `go vet`
 
 TODO: use `os.OpenRoot()` to prevent traversing out.
+
+TODO: File creation/modification/etc times
+TODO: File modes (execution, etc)
+TODO: Windows directory junctions
