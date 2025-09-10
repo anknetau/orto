@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
+
+	"github.com/anknetau/orto/fp"
 )
 
 // TODO: rename "gitCommand" to "pathToGitBinary" everywhere
@@ -18,6 +21,15 @@ type Hasher struct {
 	br     *bufio.Reader
 	mu     sync.Mutex // serialize write->read pairs
 	stdout io.ReadCloser
+}
+
+func RunGetRepoHashFormat(pathToGitBinary string) fp.Algo {
+	out, err := runToString(pathToGitBinary, "rev-parse", "--show-object-format")
+	if err != nil {
+		log.Fatal(err)
+	}
+	out = strings.TrimSpace(out)
+	return fp.AlgoOfGitObjectFormat(out)
 }
 
 // NewHasher launches a long-lived git hash-object process.

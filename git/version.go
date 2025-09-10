@@ -12,17 +12,25 @@ var (
 	reGitVersion = regexp.MustCompile(`^(\d+)[.](\d+)[.](\d+(-rc\d+)?)$`)
 )
 
-func RunVersion(gitCommand string) *string {
-	cmd := exec.Command(gitCommand, "--version")
+func runToString(gitCommand string, args ...string) (string, error) {
+	cmd := exec.Command(gitCommand, args...)
 	out, err := cmd.Output()
 	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
+func RunVersion(gitCommand string) string {
+	output, err := runToString(gitCommand, "--version")
+	if err != nil {
 		if errors.Is(err, exec.ErrNotFound) {
-			return nil
+			return ""
 		} else {
 			log.Fatalf("Cannot execute git: %s", err)
 		}
 	}
-	output := string(out)
+
 	output = strings.TrimSpace(output)
 	// Version looks like major.minor.path(-rcN)
 	version, ok := strings.CutPrefix(output, "git version ")
@@ -33,5 +41,5 @@ func RunVersion(gitCommand string) *string {
 	if len(matches) == 0 {
 		log.Fatalf("Version response from git not recognized: [%s]", output)
 	}
-	return &version
+	return version
 }

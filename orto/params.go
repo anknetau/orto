@@ -32,18 +32,9 @@ func (params *UserParameters) ApplyDefaults() {
 	setDefaultStringIfEmpty(&params.GitCommand, "git")
 }
 
-func findGitVersion(gitCommand string) string {
-	gitVersion := git.RunVersion(gitCommand)
-	if gitVersion == nil {
-		log.Fatal("Could not find git")
-	}
-	return *gitVersion
-}
-
 func checkAndUpdateUserParameters(params *UserParameters) Settings {
 	params.ApplyDefaults()
-	gitVersion := findGitVersion(params.GitCommand)
-	// TODO: look for .git in parent directories
+	gitEnv := git.FindGit(params.GitCommand)
 	// TODO: Automatically resolve source/dest to be absolute paths
 	if !filepath.IsAbs(params.Source) {
 		log.Fatal("Source is not an absolute path: " + params.Source)
@@ -81,8 +72,9 @@ func checkAndUpdateUserParameters(params *UserParameters) Settings {
 			copyUnchangedFiles:              params.CopyUnchangedFiles,
 		},
 		envConfig: fp.EnvConfig{
+			// TODO: move git information into the separate object
 			GitCommand: params.GitCommand,
-			GitVersion: gitVersion,
+			GitVersion: gitEnv.Version,
 		},
 	}
 }

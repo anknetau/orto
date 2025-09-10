@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"iter"
 	"log"
-	"os/exec"
 	"regexp"
 	"strings"
 
@@ -218,14 +217,11 @@ func JoinInputWhenNeededIter(input iter.Seq[string]) iter.Seq[string] {
 }
 
 func RunStatus(config fp.EnvConfig) []StatusLine {
-	cmd := exec.Command(config.GitCommand, "status", "--porcelain=v2", "--untracked-files=all", "--show-stash", "--branch", "--ignored", "-z")
-	out, err := cmd.Output()
+	output, err := runToString(config.GitCommand, "status", "--porcelain=v2", "--untracked-files=all", "--show-stash", "--branch", "--ignored", "-z")
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	// TODO: stream this stuff
-	output := string(out)
 	return ParseLines(output)
 }
 

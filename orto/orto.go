@@ -1,6 +1,7 @@
 package orto
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -40,7 +41,7 @@ type OutputSettings struct {
 func Run(params UserParameters) {
 	settings := checkAndUpdateUserParameters(&params)
 	catalog := find(settings.input, settings.envConfig)
-	changes := diff(catalog, settings.input)
+	changes := diff(catalog, settings.input, settings.envConfig)
 	write(settings.envConfig, settings.output, changes)
 }
 
@@ -80,7 +81,7 @@ func find(inputSettings InputSettings, envConfig fp.EnvConfig) Catalog {
 	return inputs
 }
 
-func diff(catalog Catalog, inputSettings InputSettings) []Change {
+func diff(catalog Catalog, inputSettings InputSettings, envConfig fp.EnvConfig) []Change {
 	PrintLogHeader("Comparing...")
 	common, fsFiles, gitBlobs := CompareFiles(catalog.gitBlobs, catalog.fsFiles, catalog.fsFileIndex, catalog.gitBlobIndex)
 
@@ -93,8 +94,21 @@ func diff(catalog Catalog, inputSettings InputSettings) []Change {
 	//	}
 	//}
 
+	println("starting hasher")
+	hasher, err := git.NewHasher(envConfig.GitCommand)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer hasher.Close()
+
 	var changes []Change
 	for _, fsFile := range fsFiles {
+		checksum, err := hasher.Hash(fsFile.Path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		calculatedChecksum := fp.ChecksumBlob(fsFile.Path, fp.SHA1)
+		fmt.Println("checksum for ", fsFile.Path, "is", checksum, "calculatedChecksum is", calculatedChecksum)
 		change := ComparePair(nil, &fsFile, catalog.gitIgnoredFilesIndex, inputSettings)
 		changes = append(changes, change)
 	}
