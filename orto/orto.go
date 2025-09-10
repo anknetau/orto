@@ -25,6 +25,7 @@ type Settings struct {
 	input     InputSettings
 	output    OutputSettings
 	envConfig fp.EnvConfig
+	gitEnv    git.Env
 }
 type InputSettings struct {
 	absSourceDir string
@@ -40,14 +41,13 @@ type OutputSettings struct {
 
 func Run(params UserParameters) {
 	settings := checkAndUpdateUserParameters(&params)
-	catalog := find(settings.input, settings.envConfig)
-	changes := diff(catalog, settings.input, settings.envConfig)
-	write(settings.envConfig, settings.output, changes)
+	catalog := find(settings.input, settings.gitEnv)
+	changes := diff(catalog, settings.input, settings.gitEnv)
+	write(settings.gitEnv, settings.output, changes)
 }
 
-func find(inputSettings InputSettings, envConfig fp.EnvConfig) Catalog {
+func find(inputSettings InputSettings, gitEnv git.Env) Catalog {
 	absSourceDir := inputSettings.absSourceDir
-	PrintLogHeader("Found git version " + envConfig.GitVersion)
 	if !filepath.IsAbs(absSourceDir) {
 		panic("Not an absolute directory: " + absSourceDir)
 	}
@@ -56,11 +56,11 @@ func find(inputSettings InputSettings, envConfig fp.EnvConfig) Catalog {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gitBlobs, gitSubmodules := git.RunGetTreeForHead(envConfig)
+	gitBlobs, gitSubmodules := git.RunGetTreeForHead(gitEnv)
 	inputs := Catalog{
 		fsFiles:       FsReadDir(absSourceDir),
 		gitBlobs:      gitBlobs,
-		gitStatus:     git.RunStatus(envConfig),
+		gitStatus:     git.RunStatus(gitEnv),
 		gitSubmodules: gitSubmodules,
 	}
 	inputs.fsFileIndex = Index(inputs.fsFiles, func(file FSFile) string {
@@ -81,7 +81,7 @@ func find(inputSettings InputSettings, envConfig fp.EnvConfig) Catalog {
 	return inputs
 }
 
-func diff(catalog Catalog, inputSettings InputSettings, envConfig fp.EnvConfig) []Change {
+func diff(catalog Catalog, inputSettings InputSettings, gitEnv git.Env) []Change {
 	PrintLogHeader("Comparing...")
 	common, fsFiles, gitBlobs := CompareFiles(catalog.gitBlobs, catalog.fsFiles, catalog.fsFileIndex, catalog.gitBlobIndex)
 
@@ -95,11 +95,13 @@ func diff(catalog Catalog, inputSettings InputSettings, envConfig fp.EnvConfig) 
 	//}
 
 	println("starting hasher")
-	hasher, err := git.NewHasher(envConfig.GitCommand)
+	hasher, err := git.NewHasher(gitEnv.PathToBinary)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer hasher.Close()
+	defer func(hasher *git.Hasher) {
+		_ = hasher.Close()
+	}(hasher)
 
 	var changes []Change
 	for _, fsFile := range fsFiles {
@@ -145,6 +147,7 @@ func diff(catalog Catalog, inputSettings InputSettings, envConfig fp.EnvConfig) 
 		if c.Kind == ChangeKindIgnoredByOrto {
 			// TODO: this is repeated:
 			splitParts := fp.SplitFilePath(c.FsFile.CleanPath)
+			// TODO: checking for ".git" on a case insensitive file system is wrong
 			if len(splitParts) > 0 && splitParts[0] == ".git" {
 				ortoDotGitIgnores++
 			}
@@ -162,7 +165,7 @@ func diff(catalog Catalog, inputSettings InputSettings, envConfig fp.EnvConfig) 
 	return changes
 }
 
-func write(envConfig fp.EnvConfig, outputSettings OutputSettings, changes []Change) {
+func write(gitEnv git.Env, outputSettings OutputSettings, changes []Change) {
 	PrintLogHeader("Writing output...")
 
 	// TODO: do this properly:
@@ -186,7 +189,7 @@ func write(envConfig fp.EnvConfig, outputSettings OutputSettings, changes []Chan
 			CopyFile(change.FsFile.CleanPath, change.FsFile.CleanPath, outputSettings.absDestinationChangeSetDir)
 			PrintLogCopy(change.FsFile.CleanPath, filepath.Join(outputSettings.absDestinationChangeSetDir, change.FsFile.CleanPath))
 		case ChangeKindDeleted:
-			SaveGitBlob(envConfig.GitCommand, change.GitBlob.Checksum, change.GitBlob.CleanPath, outputSettings.absDestinationChangeSetDir)
+			SaveGitBlob(gitEnv, change.GitBlob.Checksum, change.GitBlob.CleanPath, outputSettings.absDestinationChangeSetDir)
 			jsonOut.maybeAddComma() // TODO: finish this
 			jsonOut.encode(change.GitBlob)
 			PrintLogDel(change.GitBlob.CleanPath)

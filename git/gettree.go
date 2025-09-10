@@ -4,13 +4,11 @@ import (
 	"log"
 	"os/exec"
 	"strings"
-
-	"github.com/anknetau/orto/fp"
 )
 
-func RunGetTreeForHead(config fp.EnvConfig) ([]Blob, []Submodule) {
+func RunGetTreeForHead(gitEnv Env) ([]Blob, []Submodule) {
 	// %(objectmode) %(objecttype) %(objectname)%x09%(path)
-	cmd := exec.Command(config.GitCommand, "ls-tree", "HEAD", "-r", "--format=%(objecttype)|>%(objectname)|>%(path)|>%(objectmode)", "-z")
+	cmd := exec.Command(gitEnv.PathToBinary, "ls-tree", "HEAD", "-r", "--format=%(objecttype)|>%(objectname)|>%(path)|>%(objectmode)", "-z")
 	out, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)

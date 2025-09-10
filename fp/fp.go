@@ -224,3 +224,16 @@ func CreateIntermediateDirectoriesForFile(relPathToFileNotDir string, destAbsolu
 		log.Fatalf("Source %s Already exists and is not a directory", relPathToFileNotDir)
 	}
 }
+
+func IsAbsPathToDirOrDie(absPath string, name string) {
+	if !filepath.IsAbs(absPath) {
+		log.Fatal(name + ": not an absolute path: " + absPath)
+	}
+	stat, err := os.Stat(absPath)
+	if err != nil {
+		log.Fatal(name + ": cannot access: " + err.Error())
+	}
+	if !stat.IsDir() {
+		log.Fatal(name + ": not a directory: " + absPath)
+	}
+}

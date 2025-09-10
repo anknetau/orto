@@ -1,6 +1,5 @@
 package fp
 
 type EnvConfig struct {
-	GitCommand string
-	GitVersion string
+	// TODO: do something with this or get rid of it
 }

@@ -15,7 +15,7 @@ type UserParameters struct {
 	Source              string
 	Destination         string
 	ChangeSetName       string
-	GitCommand          string
+	PathToGitBinary     string
 	CopyDotGit          bool
 	CopyGitIgnoredFiles bool // TODO
 	CopyUnchangedFiles  bool
@@ -29,12 +29,16 @@ func setDefaultStringIfEmpty(key *string, def string) {
 }
 
 func (params *UserParameters) ApplyDefaults() {
-	setDefaultStringIfEmpty(&params.GitCommand, "git")
+	setDefaultStringIfEmpty(&params.PathToGitBinary, "git")
 }
 
 func checkAndUpdateUserParameters(params *UserParameters) Settings {
 	params.ApplyDefaults()
-	gitEnv := git.FindGit(params.GitCommand)
+
+	gitEnv := git.Find(params.PathToGitBinary)
+	PrintLogHeader("Found git version " + gitEnv.Version + " with algo " + string(gitEnv.Algo))
+	PrintLogHeader("Repository worktree is '" + gitEnv.AbsRoot + "' with .git at '" + gitEnv.AbsGitDir + "'")
+
 	// TODO: Automatically resolve source/dest to be absolute paths
 	if !filepath.IsAbs(params.Source) {
 		log.Fatal("Source is not an absolute path: " + params.Source)
@@ -71,11 +75,8 @@ func checkAndUpdateUserParameters(params *UserParameters) Settings {
 			absDestinationChangeSetDir:      filepath.Join(absDestinationDir, params.ChangeSetName),
 			copyUnchangedFiles:              params.CopyUnchangedFiles,
 		},
-		envConfig: fp.EnvConfig{
-			// TODO: move git information into the separate object
-			GitCommand: params.GitCommand,
-			GitVersion: gitEnv.Version,
-		},
+		envConfig: fp.EnvConfig{},
+		gitEnv:    gitEnv,
 	}
 }
 

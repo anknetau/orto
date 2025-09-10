@@ -12,8 +12,8 @@ var (
 	reGitVersion = regexp.MustCompile(`^(\d+)[.](\d+)[.](\d+(-rc\d+)?)$`)
 )
 
-func runToString(gitCommand string, args ...string) (string, error) {
-	cmd := exec.Command(gitCommand, args...)
+func runToString(pathToBinary string, args ...string) (string, error) {
+	cmd := exec.Command(pathToBinary, args...)
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -21,8 +21,8 @@ func runToString(gitCommand string, args ...string) (string, error) {
 	return string(out), nil
 }
 
-func RunVersion(gitCommand string) string {
-	output, err := runToString(gitCommand, "--version")
+func RunVersion(pathToBinary string) string {
+	output, err := runToString(pathToBinary, "--version")
 	if err != nil {
 		if errors.Is(err, exec.ErrNotFound) {
 			return ""

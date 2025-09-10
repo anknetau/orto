@@ -216,8 +216,8 @@ func JoinInputWhenNeededIter(input iter.Seq[string]) iter.Seq[string] {
 	}
 }
 
-func RunStatus(config fp.EnvConfig) []StatusLine {
-	output, err := runToString(config.GitCommand, "status", "--porcelain=v2", "--untracked-files=all", "--show-stash", "--branch", "--ignored", "-z")
+func RunStatus(gitEnv Env) []StatusLine {
+	output, err := runToString(gitEnv.PathToBinary, "status", "--porcelain=v2", "--untracked-files=all", "--show-stash", "--branch", "--ignored", "-z")
 	if err != nil {
 		log.Fatal(err)
 	}

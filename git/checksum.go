@@ -2,6 +2,7 @@ package git
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,8 +13,6 @@ import (
 
 	"github.com/anknetau/orto/fp"
 )
-
-// TODO: rename "gitCommand" to "pathToGitBinary" everywhere
 
 type Hasher struct {
 	cmd    *exec.Cmd
@@ -28,8 +27,54 @@ func RunGetRepoHashFormat(pathToGitBinary string) fp.Algo {
 	if err != nil {
 		log.Fatal(err)
 	}
-	out = strings.TrimSpace(out)
-	return fp.AlgoOfGitObjectFormat(out)
+	return fp.AlgoOfGitObjectFormat(strings.TrimSpace(out))
+}
+
+type WorktreeStatus int
+
+const (
+	WorktreeStatusTrue WorktreeStatus = iota
+	WorktreeStatusFalse
+	WorktreeStatusNotARepo
+)
+
+func (env Env) RunGetIsInsideWorktree() WorktreeStatus {
+	out, err := runToString(env.PathToBinary, "rev-parse", "--is-inside-work-tree")
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 128 &&
+			strings.Contains(string(exitErr.Stderr), "not a git repository") {
+			return WorktreeStatusNotARepo
+		} else {
+			log.Fatal(err)
+		}
+	}
+	if strings.TrimSpace(out) == "true" {
+		return WorktreeStatusTrue
+	} else if strings.TrimSpace(out) == "false" {
+		return WorktreeStatusFalse
+	} else {
+		log.Fatal("Could not parse git output: " + out)
+		return WorktreeStatusNotARepo
+	}
+}
+
+func (env Env) RunGetRepoRoot() string {
+	// TODO: this returns a path that could not support spaces, escaping and other issues.
+	out, err := runToString(env.PathToBinary, "rev-parse", "--show-toplevel")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return strings.TrimSpace(out)
+}
+
+func (env Env) RunGetGitDir() string {
+	// TODO: this returns a path that could not support spaces, escaping and other issues.
+	out, err := runToString(env.PathToBinary, "rev-parse", "--absolute-git-dir")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return strings.TrimSpace(out)
 }
 
 // NewHasher launches a long-lived git hash-object process.
