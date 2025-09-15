@@ -132,11 +132,12 @@ func CompareFiles(gitBlobs []git.Blob, fsFiles []FSFile, fsFileIndex map[string]
 	return common, resultFsFiles, resultGitBlobs
 }
 
-func isOrtoIgnored(fsFile *FSFile, inputSettings InputSettings) bool {
-	splitParts := fp.SplitFilePath(fsFile.CleanPath)
-	if !inputSettings.copyDotGit && len(splitParts) > 0 && splitParts[0] == ".git" {
+func isOrtoIgnored(fsFile *FSFile, inputSettings InputSettings, gitEnv git.Env) bool {
+	if !inputSettings.copyDotGit && gitEnv.IsPartOfDotGit(fsFile.CleanPath) {
 		return true
 	}
+	splitParts := fp.SplitFilePath(fsFile.CleanPath)
+	// TODO: this is just a little test:
 	if len(splitParts) > 0 && splitParts[0] == "third_party" || splitParts[0] == "laf" {
 		return true
 	}
@@ -156,9 +157,9 @@ func isOrtoIgnored(fsFile *FSFile, inputSettings InputSettings) bool {
 	return false
 }
 
-func ComparePair(gitBlob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, inputSettings InputSettings) Change {
+func ComparePair(gitBlob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, inputSettings InputSettings, gitEnv git.Env) Change {
 	if fsFile != nil {
-		if isOrtoIgnored(fsFile, inputSettings) {
+		if isOrtoIgnored(fsFile, inputSettings, gitEnv) {
 			return Change{Kind: ChangeKindIgnoredByOrto, FsFile: fsFile}
 		}
 		if _, ignored := gitIgnoredFilesIndex[fsFile.CleanPath]; ignored {

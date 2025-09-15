@@ -2,6 +2,8 @@ package git
 
 import (
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/anknetau/orto/fp"
 )
@@ -14,8 +16,14 @@ type Env struct {
 	AbsGitDir    string
 }
 
-func Find(pathToBinary string) Env {
-	//_ = os.Chdir("/")
+func Find(pathToBinary string, absPathToChdir string) Env {
+	if !filepath.IsAbs(absPathToChdir) {
+		panic("Not an absolute path: " + absPathToChdir)
+	}
+	err := os.Chdir(absPathToChdir)
+	if err != nil {
+		log.Fatal(err)
+	}
 	version := RunVersion(pathToBinary)
 	if version == "" {
 		log.Fatal("Could not find git")
@@ -45,6 +53,16 @@ func Find(pathToBinary string) Env {
 
 	env.Algo = RunGetRepoHashFormat(pathToBinary)
 
-	// TODO: look for .git in parent directories
 	return env
+}
+
+func (env Env) IsPartOfDotGit(path string) bool {
+	if !filepath.IsAbs(path) {
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		path = absPath
+	}
+	return fp.AbsolutePathIsParentOrEqual(env.AbsRoot, path)
 }

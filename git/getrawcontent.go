@@ -16,5 +16,3 @@ func (env Env) RunGetRawContent(checksum fp.Checksum) []byte {
 	}
 	return out
 }
-
-//let's stage this

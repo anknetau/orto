@@ -15,6 +15,9 @@ import (
 func printUsage(fs *flag.FlagSet) {
 	util.ErrPrintLnf("orto v%s usage:\n", orto.Version())
 	util.ErrPrintLnf("orto [flags] <input_dir> <output_dir>\n")
+	util.ErrPrintLnf("input_dir is a directory or subdirectory of a git working tree. Orto will use the root of the repository as input")
+	util.ErrPrintLnf("output_dir is the output directory")
+	util.ErrPrintLnf("")
 	util.ErrPrintLnf("Flags are:\n")
 	util.ErrPrintLnf("  -help: show help")
 	fs.SetOutput(os.Stderr)

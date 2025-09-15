@@ -28,8 +28,7 @@ type Settings struct {
 	gitEnv    git.Env
 }
 type InputSettings struct {
-	absSourceDir string
-	copyDotGit   bool
+	copyDotGit bool
 }
 
 type OutputSettings struct {
@@ -40,14 +39,14 @@ type OutputSettings struct {
 }
 
 func Run(params UserParameters) {
-	settings := checkAndUpdateUserParameters(&params)
+	settings := applyDefaultsAndCheckParameters(&params)
 	catalog := find(settings.input, settings.gitEnv)
 	changes := diff(catalog, settings.input, settings.gitEnv)
 	write(settings.gitEnv, settings.output, changes)
 }
 
 func find(inputSettings InputSettings, gitEnv git.Env) Catalog {
-	absSourceDir := inputSettings.absSourceDir
+	absSourceDir := gitEnv.AbsRoot
 	if !filepath.IsAbs(absSourceDir) {
 		panic("Not an absolute directory: " + absSourceDir)
 	}
@@ -94,7 +93,6 @@ func diff(catalog Catalog, inputSettings InputSettings, gitEnv git.Env) []Change
 	//	}
 	//}
 
-	println("starting hasher")
 	hasher, err := git.NewHasher(gitEnv.PathToBinary)
 	if err != nil {
 		log.Fatal(err)
@@ -111,15 +109,15 @@ func diff(catalog Catalog, inputSettings InputSettings, gitEnv git.Env) []Change
 		}
 		calculatedChecksum := fp.ChecksumBlob(fsFile.Path, fp.SHA1)
 		fmt.Println("checksum for ", fsFile.Path, "is", checksum, "calculatedChecksum is", calculatedChecksum)
-		change := ComparePair(nil, &fsFile, catalog.gitIgnoredFilesIndex, inputSettings)
+		change := ComparePair(nil, &fsFile, catalog.gitIgnoredFilesIndex, inputSettings, gitEnv)
 		changes = append(changes, change)
 	}
 	for _, blob := range gitBlobs {
-		change := ComparePair(&blob, nil, catalog.gitIgnoredFilesIndex, inputSettings)
+		change := ComparePair(&blob, nil, catalog.gitIgnoredFilesIndex, inputSettings, gitEnv)
 		changes = append(changes, change)
 	}
 	for _, gitBlobAndFile := range common {
-		change := ComparePair(&gitBlobAndFile.GitBlob, &gitBlobAndFile.FsFile, catalog.gitIgnoredFilesIndex, inputSettings)
+		change := ComparePair(&gitBlobAndFile.GitBlob, &gitBlobAndFile.FsFile, catalog.gitIgnoredFilesIndex, inputSettings, gitEnv)
 		changes = append(changes, change)
 	}
 
@@ -145,10 +143,7 @@ func diff(catalog Catalog, inputSettings InputSettings, gitEnv git.Env) []Change
 		// TODO: should ignored files by orto refer just to FsFiles? can i not ignore files in git?
 		// or am i ignoring changes?
 		if c.Kind == ChangeKindIgnoredByOrto {
-			// TODO: this is repeated:
-			splitParts := fp.SplitFilePath(c.FsFile.CleanPath)
-			// TODO: checking for ".git" on a case insensitive file system is wrong
-			if len(splitParts) > 0 && splitParts[0] == ".git" {
+			if gitEnv.IsPartOfDotGit(c.FsFile.CleanPath) {
 				ortoDotGitIgnores++
 			}
 		}

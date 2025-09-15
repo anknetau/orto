@@ -32,32 +32,19 @@ func (params *UserParameters) ApplyDefaults() {
 	setDefaultStringIfEmpty(&params.PathToGitBinary, "git")
 }
 
-func checkAndUpdateUserParameters(params *UserParameters) Settings {
+func applyDefaultsAndCheckParameters(params *UserParameters) Settings {
 	params.ApplyDefaults()
 
-	gitEnv := git.Find(params.PathToGitBinary)
+	absSourceDir := CheckSourceDirectory(params.Source)
+
+	gitEnv := git.Find(params.PathToGitBinary, absSourceDir)
 	PrintLogHeader("Found git version " + gitEnv.Version + " with algo " + string(gitEnv.Algo))
 	PrintLogHeader("Repository worktree is '" + gitEnv.AbsRoot + "' with .git at '" + gitEnv.AbsGitDir + "'")
 
-	// TODO: Automatically resolve source/dest to be absolute paths
-	if !filepath.IsAbs(params.Source) {
-		log.Fatal("Source is not an absolute path: " + params.Source)
-	}
-	if !filepath.IsAbs(params.Destination) {
-		log.Fatal("Destination is not an absolute path: " + params.Destination)
-	}
-	CheckSourceDirectory(params.Source)
-	CheckDestinationDirectory(params.Destination)
-	absSourceDir, err := filepath.Abs(params.Source)
-	if err != nil {
-		log.Fatal(err)
-	}
-	absDestinationDir, err := filepath.Abs(params.Destination)
-	if err != nil {
-		log.Fatal(err)
-	}
+	absDestinationDir := CheckDestinationDirectory(params.Destination)
+
 	// TODO: this is unsupported for now, but will change in the future - if eg the target is a compressed file
-	if !fp.AbsolutePathsAreUnrelated(absSourceDir, absDestinationDir) {
+	if !fp.AbsolutePathsAreUnrelated(gitEnv.AbsRoot, absDestinationDir) {
 		log.Fatalf("Source and destination are related: %s and %s", params.Source, params.Destination)
 	}
 	// TODO: check this properly:
@@ -66,8 +53,7 @@ func checkAndUpdateUserParameters(params *UserParameters) Settings {
 	}
 	return Settings{
 		input: InputSettings{
-			absSourceDir: absSourceDir,
-			copyDotGit:   params.CopyDotGit,
+			copyDotGit: params.CopyDotGit,
 		},
 		output: OutputSettings{
 			absDestinationDir:               absDestinationDir,
@@ -80,47 +66,49 @@ func checkAndUpdateUserParameters(params *UserParameters) Settings {
 	}
 }
 
-func CheckSourceDirectory(path string) {
+func CheckSourceDirectory(path string) string {
+	if len(path) == 0 {
+		log.Fatalf("Source '%s' is not a directory", path)
+	}
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		log.Fatal(err)
+	}
 	// TODO: os.Stat follows symlinks apparently
-	sourceStat, err := os.Stat(path)
+	sourceStat, err := os.Stat(absPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if !sourceStat.IsDir() {
-		log.Fatalf("Source %s is not a directory", path)
+		log.Fatalf("Source '%s' is not a directory", path)
 	}
-	// TODO: os.Stat follows symlinks apparently
-	dotGitStat, err := os.Stat(filepath.Join(path, ".git"))
+	return absPath
+}
+
+func CheckDestinationDirectory(path string) string {
+	if len(path) == 0 {
+		log.Fatalf("Destination '%s' is not a directory", path)
+	}
+	absDestinationDir, err := filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if !dotGitStat.IsDir() {
-		log.Fatalf("Source %s does not contain a .git subdirectory", path)
-	}
-	if !filepath.IsAbs(path) {
-		log.Fatal("Source is not an absolute path: " + path)
-	}
-}
-
-func CheckDestinationDirectory(path string) {
 	// TODO: os.Stat follows symlinks apparently
-	destinationStat, err := os.Stat(path)
+	destinationStat, err := os.Stat(absDestinationDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if !destinationStat.IsDir() {
-		log.Fatalf("Destination %s is not a directory", path)
+		log.Fatalf("Destination '%s' is not a directory", path)
 	}
-	isDirEmpty, err := fp.IsDirEmpty(path)
+	isDirEmpty, err := fp.IsDirEmpty(absDestinationDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if !isDirEmpty {
 		log.Fatalf("Destination %s is not empty", path)
 	}
-	if !filepath.IsAbs(path) {
-		log.Fatal("Destination is not an absolute path: " + path)
-	}
+	return absDestinationDir
 }
 
 // TODO: destination shouldn't be in source etc

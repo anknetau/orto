@@ -56,7 +56,7 @@ func main() {
 	orto.Run(orto.UserParameters{
 		// "/Users/ank/dev/accounting/accounting"
 		// "/Users/ank/dev/mirrors"
-		Source:              "/Users/ank/dev/3rd/aseprite",
+		Source:              "../../3rd/aseprite/cmake",
 		Destination:         "/Users/ank/dev/orto/orto/../dest/.",
 		ChangeSetName:       "2025-01-01-my-thing",
 		CopyDotGit:          false,
