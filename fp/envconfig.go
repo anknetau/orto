@@ -1,5 +1,7 @@
 package fp
 
+import "time"
+
 type EnvConfig struct {
-	// TODO: do something with this or get rid of it
+	StartTime time.Time
 }

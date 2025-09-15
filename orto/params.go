@@ -5,9 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/anknetau/orto/fp"
 	"github.com/anknetau/orto/git"
+	"github.com/anknetau/orto/util"
 )
 
 // UserParameters are parameters set by the user
@@ -34,6 +36,7 @@ func (params *UserParameters) ApplyDefaults() {
 
 func applyDefaultsAndCheckParameters(params *UserParameters) Settings {
 	params.ApplyDefaults()
+	startTime := time.Now()
 
 	absSourceDir := CheckSourceDirectory(params.Source)
 
@@ -47,9 +50,13 @@ func applyDefaultsAndCheckParameters(params *UserParameters) Settings {
 	if !fp.AbsolutePathsAreUnrelated(gitEnv.AbsRoot, absDestinationDir) {
 		log.Fatalf("Source and destination are related: %s and %s", params.Source, params.Destination)
 	}
-	// TODO: check this properly:
-	if len(params.ChangeSetName) == 0 || strings.ContainsAny(params.ChangeSetName, string(filepath.Separator)+" ") {
-		log.Fatalf("Invalid ChangeSetName %s", params.ChangeSetName)
+	if len(params.ChangeSetName) == 0 {
+		params.ChangeSetName = util.SerializedDateTime(startTime)
+	} else {
+		// TODO: check this properly:
+		if strings.ContainsAny(params.ChangeSetName, string(filepath.Separator)+" ") {
+			log.Fatalf("Invalid ChangeSetName %s", params.ChangeSetName)
+		}
 	}
 	return Settings{
 		input: InputSettings{
@@ -61,8 +68,10 @@ func applyDefaultsAndCheckParameters(params *UserParameters) Settings {
 			absDestinationChangeSetDir:      filepath.Join(absDestinationDir, params.ChangeSetName),
 			copyUnchangedFiles:              params.CopyUnchangedFiles,
 		},
-		envConfig: fp.EnvConfig{},
-		gitEnv:    gitEnv,
+		envConfig: fp.EnvConfig{
+			StartTime: startTime,
+		},
+		gitEnv: gitEnv,
 	}
 }
 

@@ -20,7 +20,7 @@ func ErrPrintLnf(format string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stderr, "\n")
 }
 
-// SerializedDateTime returns a string that looks like '2025-09-06T14:06:20+10:00'
+// SerializedDateTime returns a string that looks like "2006-01-02_15-04-05"
 func SerializedDateTime(now time.Time) string {
-	return now.Format(time.RFC3339)
+	return now.Format("2006-01-02_15-04-05")
 }

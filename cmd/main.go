@@ -56,9 +56,9 @@ func main() {
 	orto.Run(orto.UserParameters{
 		// "/Users/ank/dev/accounting/accounting"
 		// "/Users/ank/dev/mirrors"
-		Source:              "../../3rd/aseprite/cmake",
-		Destination:         "/Users/ank/dev/orto/orto/../dest/.",
-		ChangeSetName:       "2025-01-01-my-thing",
+		Source:      "../../3rd/aseprite/cmake",
+		Destination: "/Users/ank/dev/orto/orto/../dest/.",
+		//ChangeSetName:       "2025-01-01-my-thing",
 		CopyDotGit:          false,
 		CopyGitIgnoredFiles: false,
 		CopyUnchangedFiles:  false,

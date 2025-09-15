@@ -36,7 +36,6 @@ func ParseOrExit() orto.UserParameters {
 	flagSet := flag.NewFlagSet("orto", flag.ContinueOnError)
 	flagSet.SetOutput(io.Discard)
 	flagSet.Usage = func() {}
-	//boolFlag := flagSet.Bool("help", false, "show help")
 	now := util.SerializedDateTime(time.Now())
 	flagSet.StringVar(&result.ChangeSetName, "ChangeSetName", "", "ChangeSetName to use. Default: current datetime (eg '"+now+"')")
 
