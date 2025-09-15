@@ -45,6 +45,7 @@ func applyDefaultsAndCheckParameters(params *UserParameters) Settings {
 	PrintLogHeader("Repository worktree is '" + gitEnv.AbsRoot + "' with .git at '" + gitEnv.AbsGitDir + "'")
 
 	absDestinationDir := CheckDestinationDirectory(params.Destination)
+	PrintLogHeader("Destination is '" + absDestinationDir + "'")
 
 	// TODO: this is unsupported for now, but will change in the future - if eg the target is a compressed file
 	if !fp.AbsolutePathsAreUnrelated(gitEnv.AbsRoot, absDestinationDir) {
