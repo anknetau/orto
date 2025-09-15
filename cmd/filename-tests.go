@@ -1,5 +1,7 @@
 package main
 
+// TODO: https://stackoverflow.com/questions/6119956/how-to-determine-if-git-handles-a-file-as-binary-or-as-text
+
 import (
 	"errors"
 	"fmt"
@@ -9,6 +11,12 @@ import (
 	"strings"
 	"syscall"
 )
+
+func closeKill(file *os.File, path string) {
+	_ = os.Remove(path) // Will immediately remove the file in macos/UNIX
+	_ = file.Close()
+	_ = os.Remove(path) // In Windows, deletion only works here.
+}
 
 func tryCreateUnlinked(dir, name string) error {
 	p := filepath.Join(dir, name)
@@ -24,9 +32,7 @@ func tryCreateUnlinked(dir, name string) error {
 		return err
 		// EINVAL/ENAMETOOLONG/EPERM
 	}
-	// Immediately remove the directory entry; file persists only as an open fd.
-	_ = os.Remove(p)
-	_ = file.Close()
+	closeKill(file, p)
 	return nil
 }
 
@@ -41,14 +47,12 @@ func tryCreateTwo(dir, name1, name2 string) error {
 		os.Exit(2)
 	}
 	file2, err2 := os.OpenFile(p2, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
-	_ = os.Remove(p1)
-	_ = file1.Close()
+	closeKill(file1, p1)
 
 	if err2 != nil {
 		return err2
 	}
-	_ = os.Remove(p2)
-	_ = file2.Close()
+	closeKill(file2, p2)
 	return nil
 }
 
@@ -74,11 +78,17 @@ func testName(name string) NameTestResult {
 			return NameTestErrIllegalNameSequence
 		} else if errors.Is(pathError.Err, syscall.EINVAL) {
 			return NameTestErrInvalidArgument
+		} else if pathError.Err.Error() == "The parameter is incorrect." ||
+			pathError.Err.Error() == "The system cannot find the file specified." ||
+			pathError.Err.Error() == "The filename, directory name, or volume label syntax is incorrect." { // TODO: this is a windows thing
+			return NameTestErrIllegalNameSequence // 0x57?
 		} else {
+			println(pathError.Err.Error())
 			fmt.Printf("Unknown error type: %#v\n", pathError)
 			panic("Unknown error returned")
 		}
 	}
+	println(pathError.Err.Error())
 	fmt.Printf("Unknown error type: %T\n", err)
 	panic("Unknown error returned")
 }
@@ -90,7 +100,7 @@ func findLongestFilename(baseString string) int {
 		result := testName(test)
 		switch result {
 		case NameTestOk:
-		case NameTestErrNameTooLong:
+		case NameTestErrNameTooLong, NameTestErrIllegalNameSequence:
 			return i - 1
 		default:
 			panic("Unknown error returned: " + fmt.Sprintf("%d", result))
@@ -133,10 +143,17 @@ func testEncoding() {
 }
 
 func main() {
-	println("Separator character reported by go: '"+string(filepath.Separator)+"' #", filepath.Separator)
-	testCharacters()
-	testStrings()
+	println("Main separator character reported by go: '"+string(filepath.Separator)+"' #", filepath.Separator)
+
+	for i := 0; i < 256; i++ {
+		if os.IsPathSeparator(uint8(i)) {
+			println("Go's os.IsPathSeparator() returns true for #", i)
+		}
+	}
+
 	testCaseSensitivity()
+	testStrings()
+	testCharacters()
 	testLength()
 	testEncoding()
 }
@@ -161,7 +178,7 @@ func testCaseSensitivity() {
 }
 func testBytesInLoop(f func(i int) string) {
 	for i := 0; i < 256; i++ {
-		if i == filepath.Separator {
+		if os.IsPathSeparator(uint8(i)) {
 			continue
 		}
 		name := f(i)
@@ -230,3 +247,28 @@ func testStrings() {
 }
 
 // TODO: Note that, in macOS, the ":" character is displayed as a "/"!
+
+// Results in macOS:
+//	Main separator character reported by go: '/' # 47
+//	Go's os.IsPathSeparator() returns true for # 47
+//	Testing case sensitivity
+//	Files are the same: 'abcdefg' and 'ABCDEFG'
+//	Files are the same: 'áéñ' and 'ÁÉÑ'
+//	Files are different: 'á' and 'a'
+//	Testing commonly rejected strings (CON, PRN, etc)
+//	Rejected: None
+//	OK: CON, PRN, AUX, NUL, COM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9, COM¹, COM², COM³, LPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, LPT9, LPT¹, LPT², LPT³, CLOCK$, CONFIG$, CON.txt, PRN.txt, AUX.txt, NUL.txt, COM1.txt, COM2.txt, COM3.txt, COM4.txt, COM5.txt, COM6.txt, COM7.txt, COM8.txt, COM9.txt, COM¹.txt, COM².txt, COM³.txt, LPT1.txt, LPT2.txt, LPT3.txt, LPT4.txt, LPT5.txt, LPT6.txt, LPT7.txt, LPT8.txt, LPT9.txt, LPT¹.txt, LPT².txt, LPT³.txt, CLOCK$.txt, CONFIG$.txt
+//	Testing characters #0 to #255 in the middle of a file name, excluding separator
+//	Character rejected: #0
+//	Testing characters #0 to #255 at the start of a file name, excluding separator
+//	Character rejected: #0
+//	Testing characters #0 to #255 at the end of a file name, excluding separator
+//	Character rejected: #0
+//	Testing whitespace only string
+//	Whitespace only filename worked
+//	Testing length up to 1024...
+//	Longest filename for a single byte string: 255  ( 255 bytes)
+//	Longest filename for double byte UTF-8: 255  ( 510 bytes)
+//	Longest filename for triple byte UTF-8 (1 x UTF-16): 255 ( 765 bytes)
+//	Longest filename for quad byte UTF-8 (2 x UTF-16): 127 ( 508 bytes)
+//	Invalid UTF-8 sequence was not allowed
