@@ -30,7 +30,7 @@ func NewChecksum(checksum string) Checksum {
 	return Checksum(checksum)
 }
 
-func ChecksumBlob(path string, algo Algo) Checksum {
+func InternalChecksumBlob(path string, algo Algo) Checksum {
 	// TODO: os.Stat follows symlinks apparently
 	fileInfo, err := os.Stat(path)
 	if err != nil {

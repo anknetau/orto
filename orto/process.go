@@ -157,7 +157,8 @@ func isOrtoIgnored(fsFile *FSFile, inputSettings InputSettings, gitEnv git.Env) 
 	return false
 }
 
-func ComparePair(gitBlob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, inputSettings InputSettings, gitEnv git.Env) Change {
+func ComparePair(gitBlob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[string]string, inputSettings InputSettings, gitEnv git.Env, hasher *git.Hasher) Change {
+	var fsFileChecksum fp.Checksum
 	if fsFile != nil {
 		if isOrtoIgnored(fsFile, inputSettings, gitEnv) {
 			return Change{Kind: ChangeKindIgnoredByOrto, FsFile: fsFile}
@@ -165,6 +166,13 @@ func ComparePair(gitBlob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[str
 		if _, ignored := gitIgnoredFilesIndex[fsFile.CleanPath]; ignored {
 			return Change{Kind: ChangeKindIgnoredByGit, FsFile: fsFile}
 		}
+		checksum, err := hasher.Hash(fsFile.Path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		//calculatedChecksum := fp.InternalChecksumBlob(fsFile.Path, gitEnv.Algo)
+		fsFileChecksum = fp.NewChecksum(checksum)
+		//fmt.Printf("'%s' checksum=%s calculatedChecksum=%s\n", fsFile.Path, checksum, calculatedChecksum)
 	}
 	if gitBlob == nil && fsFile == nil {
 		panic("Illegal state")
@@ -181,8 +189,7 @@ func ComparePair(gitBlob *git.Blob, fsFile *FSFile, gitIgnoredFilesIndex map[str
 		if stat.IsDir() {
 			panic("was dir: " + fsFile.Path)
 		}
-		calculatedChecksum := fp.ChecksumBlob(gitBlob.Path, gitBlob.Checksum.GetAlgo())
-		if calculatedChecksum == gitBlob.Checksum {
+		if fsFileChecksum == gitBlob.Checksum {
 			return Change{Kind: ChangeKindUnchanged, FsFile: fsFile, GitBlob: gitBlob}
 		} else {
 			return Change{Kind: ChangeKindModified, FsFile: fsFile, GitBlob: gitBlob}

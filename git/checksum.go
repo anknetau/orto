@@ -123,7 +123,7 @@ func (h *Hasher) Hash(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return oid, nil
+	return strings.TrimSpace(oid), nil
 }
 
 // Close closes the hasher

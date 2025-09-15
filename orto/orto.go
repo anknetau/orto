@@ -1,7 +1,6 @@
 package orto
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -103,21 +102,15 @@ func diff(catalog Catalog, inputSettings InputSettings, gitEnv git.Env) []Change
 
 	var changes []Change
 	for _, fsFile := range fsFiles {
-		checksum, err := hasher.Hash(fsFile.Path)
-		if err != nil {
-			log.Fatal(err)
-		}
-		calculatedChecksum := fp.ChecksumBlob(fsFile.Path, fp.SHA1)
-		fmt.Println("checksum for ", fsFile.Path, "is", checksum, "calculatedChecksum is", calculatedChecksum)
-		change := ComparePair(nil, &fsFile, catalog.gitIgnoredFilesIndex, inputSettings, gitEnv)
+		change := ComparePair(nil, &fsFile, catalog.gitIgnoredFilesIndex, inputSettings, gitEnv, hasher)
 		changes = append(changes, change)
 	}
 	for _, blob := range gitBlobs {
-		change := ComparePair(&blob, nil, catalog.gitIgnoredFilesIndex, inputSettings, gitEnv)
+		change := ComparePair(&blob, nil, catalog.gitIgnoredFilesIndex, inputSettings, gitEnv, hasher)
 		changes = append(changes, change)
 	}
 	for _, gitBlobAndFile := range common {
-		change := ComparePair(&gitBlobAndFile.GitBlob, &gitBlobAndFile.FsFile, catalog.gitIgnoredFilesIndex, inputSettings, gitEnv)
+		change := ComparePair(&gitBlobAndFile.GitBlob, &gitBlobAndFile.FsFile, catalog.gitIgnoredFilesIndex, inputSettings, gitEnv, hasher)
 		changes = append(changes, change)
 	}
 

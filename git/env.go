@@ -64,5 +64,5 @@ func (env Env) IsPartOfDotGit(path string) bool {
 		}
 		path = absPath
 	}
-	return fp.AbsolutePathIsParentOrEqual(env.AbsRoot, path)
+	return fp.AbsolutePathIsParentOrEqual(env.AbsGitDir, path)
 }
